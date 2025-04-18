@@ -1,0 +1,59 @@
+# Python虚拟环境
+venv/
+env/
+.venv/
+ENV/
+virtualenv/
+
+# pyenv相关
+.python-version
+
+
+
+# 日志文件
+logs/
+*.log
+
+# 报告和测试结果
+reports/
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+allure-results/
+allure-report/
+
+# Python字节码文件
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# 分发/打包
+dist/
+build/
+*.egg-info/
+*.egg
+
+# IDE和编辑器相关
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# 操作系统相关
+.DS_Store
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# 其他临时文件
+*.bak
+*.tmp
+*.temp
+.env
+.env.* 

@@ -1,0 +1,68 @@
+# 用户登录测试数据
+test_login_success:
+  request:
+    method: POST
+    url: /api/v1/login
+    headers:
+      Content-Type: application/json
+    json:
+      username: "test_user"
+      password: "correct_password"
+  expected:
+    status_code: 200
+    contains: "登录成功"
+    json:
+      code: 0
+      message: "登录成功"
+      data:
+        token: "~exist"  # 使用~exist表示期望该字段存在
+
+test_login_wrong_password:
+  request:
+    method: POST
+    url: /api/v1/login
+    headers:
+      Content-Type: application/json
+    json:
+      username: "test_user"
+      password: "wrong_password"
+  expected:
+    status_code: 401
+    contains: "密码错误"
+    json:
+      code: 1001
+      message: "密码错误"
+
+# 用户注册测试数据
+test_register_success:
+  request:
+    method: POST
+    url: /api/v1/register
+    headers:
+      Content-Type: application/json
+    json:
+      username: "new_user_{random_str}"  # 使用{random_str}表示随机字符串
+      password: "password123"
+      email: "test_{random_str}@example.com"
+  expected:
+    status_code: 200
+    contains: "注册成功"
+    json:
+      code: 0
+      message: "注册成功"
+
+# 获取用户信息测试数据
+test_get_user_info:
+  request:
+    method: GET
+    url: /api/v1/users/{user_id}
+    headers:
+      Authorization: "Bearer {token}"  # 使用{token}表示需要替换的变量
+  expected:
+    status_code: 200
+    json:
+      code: 0
+      message: "获取成功"
+      data:
+        user_id: "{user_id}"
+        username: "~exist" 

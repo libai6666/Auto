@@ -1,0 +1,35 @@
+# 数据库配置
+db_config:
+  # MySQL 配置
+  mysql:
+    test:
+      host: "localhost"
+      port: 3306
+      user: "test_user"
+      password: "test_password"
+      database: "test_db"
+      charset: "utf8mb4"
+    dev:
+      host: "dev-db.example.com"
+      port: 3306
+      user: "dev_user"
+      password: "dev_password"
+      database: "dev_db"
+      charset: "utf8mb4"
+    prod:
+      host: "prod-db.example.com"
+      port: 3306
+      user: "prod_user"
+      password: "prod_password"
+      database: "prod_db"
+      charset: "utf8mb4"
+
+  # SQLite 配置 (可选)
+  sqlite:
+    db_file: "data/test.db"
+
+# 数据库连接池配置
+connection_pool:
+  max_connections: 10
+  min_connections: 2
+  timeout: 30 

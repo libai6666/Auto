@@ -7,7 +7,7 @@ env_config:
     base_url: "http://dev-api.example.com"
     timeout: 10
   test:
-    base_url: "http://test-api.example.com"
+    base_url: "https://api.duoo.work"
     timeout: 15
   prod:
     base_url: "http://api.example.com"

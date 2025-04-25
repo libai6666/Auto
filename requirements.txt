@@ -10,3 +10,4 @@ pytest-rerunfailures==12.0
 jsonpath==0.82
 jsonschema==4.19.2
 faker==19.13.0
+pytest-html

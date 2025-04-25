@@ -97,15 +97,18 @@ class APIClient:
         
         # 记录请求参数
         if params:
-            log_msg += f"Params: {json.dumps(params, ensure_ascii=False, indent=2)}\n"
+            import json as json_module  # 确保使用正确导入的 json 模块
+            log_msg += f"Params: {json_module.dumps(params, ensure_ascii=False, indent=2)}\n"
         
         # 记录请求数据
         if data:
-            log_msg += f"Data: {json.dumps(data, ensure_ascii=False, indent=2) if isinstance(data, dict) else data}\n"
+            import json as json_module  # 确保使用正确导入的 json 模块
+            log_msg += f"Data: {json_module.dumps(data, ensure_ascii=False, indent=2) if isinstance(data, dict) else data}\n"
         
         # 记录请求JSON
         if json:
-            log_msg += f"JSON: {json.dumps(json, ensure_ascii=False, indent=2)}\n"
+            import json as json_module  # 确保使用正确导入的 json 模块
+            log_msg += f"JSON: {json_module.dumps(json, ensure_ascii=False, indent=2)}\n"
         
         logger.info(log_msg)
         
@@ -139,7 +142,8 @@ class APIClient:
             
             # 记录响应体
             try:
-                log_msg += f"Response Body: {json.dumps(response.json(), ensure_ascii=False, indent=2)}\n"
+                import json as json_module  # 确保使用正确导入的 json 模块
+                log_msg += f"Response Body: {json_module.dumps(response.json(), ensure_ascii=False, indent=2)}\n"
             except:
                 log_msg += f"Response Body: {response.text}\n"
             

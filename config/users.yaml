@@ -1,0 +1,21 @@
+# 测试用户配置
+user1:
+  phoneNumber: "17447"
+  phoneCode: "43"
+  description: "主播1(uid:10015)"
+
+
+user2:
+  phoneNumber: "17411"
+  phoneCode: "43"
+  description: "主播2(uid:10026)" 
+
+user3:
+  phoneNumber: "17443"
+  phoneCode: "43"
+  description: "用户1(uid:10034)"
+
+user4:
+  phoneNumber: "18211761185"
+  phoneCode: "86"
+  description: "用户+代理(uid:10035)"

@@ -116,25 +116,70 @@ def main():
         allure_report_dir = f"reports/allure_report_{timestamp}"
         os.makedirs(allure_report_dir, exist_ok=True)
         
+        # 设置Allure和JDK路径
+        allure_bin = "D:\\tools\\allure-2.34.0\\bin\\allure.bat"
+        
+        # 确认文件存在
+        if os.path.exists(allure_bin):
+            logger.info(f"找到Allure可执行文件: {allure_bin}")
+        else:
+            logger.error(f"未找到Allure可执行文件: {allure_bin}")
+            logger.info("请手动运行以下命令查看报告: allure serve reports/allure_results_*")
+            return exit_code
+        
         try:
-            subprocess.run(["allure", "generate", allure_results_dir, "-o", allure_report_dir, "--clean"],
+            # 生成静态报告
+            logger.info("正在生成Allure静态报告...")
+            abs_results_dir = os.path.abspath(allure_results_dir)
+            abs_report_dir = os.path.abspath(allure_report_dir)
+            
+            logger.info(f"执行命令: {allure_bin} generate {abs_results_dir} -o {abs_report_dir} --clean")
+            subprocess.run([allure_bin, "generate", abs_results_dir, "-o", abs_report_dir, "--clean"],
                            check=True)
-            logger.info(f"Allure报告已生成: {allure_report_dir}")
+            logger.info(f"Allure静态报告已生成: {abs_report_dir}")
             
             # 打开报告
             if args.open:
                 logger.info("在浏览器中打开Allure报告...")
-                if sys.platform.startswith('win'):
-                    os.system(f"start allure serve {allure_results_dir}")
-                elif sys.platform.startswith('darwin'):
-                    os.system(f"open -a 'Google Chrome' {allure_report_dir}")
-                else:
-                    webbrowser.open_new_tab(f"file://{os.path.abspath(allure_report_dir)}/index.html")
+                
+                try:
+                    # 使用Allure的完整路径来启动服务
+                    logger.info(f"执行命令: {allure_bin} serve {abs_results_dir}")
+                    
+                    # 使用无窗口方式启动Allure服务
+                    if sys.platform.startswith('win'):
+                        # 创建无窗口进程的配置
+                        startupinfo = subprocess.STARTUPINFO()
+                        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                        startupinfo.wShowWindow = subprocess.SW_HIDE
+                        
+                        # 直接运行allure serve命令，但不显示窗口
+                        logger.info("以隐藏窗口方式启动Allure服务")
+                        subprocess.Popen([allure_bin, "serve", abs_results_dir], 
+                                        startupinfo=startupinfo,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE,
+                                        shell=False)
+                        logger.info("Allure服务已在后台启动，稍后将在浏览器中打开")
+                        # 等待几秒钟，让服务有时间启动
+                        time.sleep(2)
+                        logger.info("报告应该已在浏览器中打开，如果没有自动打开，请访问 http://localhost:端口号")
+                    else:
+                        # 在Linux/Mac下使用不同的命令
+                        subprocess.Popen([allure_bin, "serve", abs_results_dir], 
+                                         stdout=subprocess.PIPE, 
+                                         stderr=subprocess.PIPE, 
+                                         shell=False)
+                        logger.info("Allure服务已启动")
+                except Exception as e:
+                    logger.error(f"启动Allure服务出错: {str(e)}")
+                    logger.info(f"您可以手动执行以下命令查看报告: {allure_bin} serve {abs_results_dir}")
         except subprocess.CalledProcessError as e:
             logger.error(f"生成Allure报告失败: {str(e)}")
-            logger.error("请确保已安装Allure命令行工具")
+            logger.error(f"请确保已安装Allure命令行工具并设置正确的路径: {allure_bin}")
         except Exception as e:
             logger.error(f"处理Allure报告时出错: {str(e)}")
+            logger.info(f"您可以手动执行以下命令查看报告: {allure_bin} serve {abs_results_dir}")
     
     # 打开HTML报告（如果需要）
     elif args.report and args.open:

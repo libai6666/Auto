@@ -11,6 +11,7 @@ from utils.api_client import APIClient
 from utils.logger import logger, setup_logger
 from utils.data_handler import load_config
 from utils.db_utils import MySQLHandler
+from utils.client_factory import ClientFactory
 
 # 初始化日志
 logger = setup_logger()
@@ -26,12 +27,13 @@ def pytest_configure(config):
     """
     # 配置Allure报告相关信息
     logger.info("配置Allure报告...")
-    allure.environment(
-        python_version=os.environ.get("PYTHON_VERSION", "3.8+"),
-        pytest_version=pytest.__version__,
-        platform=os.environ.get("PLATFORM", "Windows"),
-        environment=load_config().get("current_env", "test")
-    )
+    # 注释掉有问题的部分
+    # allure.environment(
+    #     python_version=os.environ.get("PYTHON_VERSION", "3.8+"),
+    #     pytest_version=pytest.__version__,
+    #     platform=os.environ.get("PLATFORM", "Windows"),
+    #     environment=load_config().get("current_env", "test")
+    # )
 
 
 @pytest.fixture(scope="session")
@@ -60,6 +62,16 @@ def api_client():
     # 测试结束后关闭会话
     client.session.close()
     logger.info("API客户端会话已关闭")
+
+
+@pytest.fixture(scope="session")
+def client_factory():
+    """
+    客户端工厂夹具 - 用于创建任意用户的客户端
+    :return: ClientFactory实例
+    """
+    factory = ClientFactory()
+    yield factory
 
 
 @pytest.fixture(scope="session")

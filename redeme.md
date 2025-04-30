@@ -1,7 +1,7 @@
 # 接口测试自动化框架
 
 ## 项目介绍
-本项目是一个基于Python + Pytest + Requests的接口测试自动化框架，用于进行高效、稳定的API接口自动化测试。
+本项目是一个基于Python + Pytest + Requests的接口测试自动化框架，用于进行高效、稳定的API接口自动化测试。框架采用模块化设计，支持数据驱动测试，提供丰富的断言方式和报告生成功能。
 
 ## 技术栈
 - Python 3.8+
@@ -16,28 +16,140 @@
 ```
 DuooInterfaceAuto/
 ├── config/                 # 配置文件目录
-│   ├── config.yaml         # 主配置文件（环境、URL等）
-│   ├── db_config.yaml      # 数据库配置
-│   └── email_config.yaml   # 邮件配置（可选）
+│   ├── config.yaml         # 主配置文件（环境、URL、请求配置、测试控制）
+│   ├── db_config.yaml      # 数据库配置（连接信息、查询超时等）
+│   ├── email_config.yaml   # 邮件配置（SMTP服务器、账号等）
+│   └── users.yaml          # 测试用户配置（登录凭证、权限等）
 ├── data/                   # 测试数据目录
-│   └── api_data/           # API测试数据（YAML格式）
-├── logs/                   # 日志目录
-├── reports/                # 测试报告目录
+│   └── api_data/           # API测试数据（YAML格式，包含请求和预期结果）
+│       └── user.yaml       # 用户相关接口测试数据
+├── logs/                   # 日志目录（存储测试运行日志）
+├── reports/                # 测试报告目录（存储HTML报告和Allure报告）
 ├── testcases/              # 测试用例目录
-│   ├── conftest.py         # Pytest配置文件
+│   ├── conftest.py         # Pytest配置文件（夹具和钩子函数）
+│   ├── __init__.py         # 包初始化文件
 │   ├── module1/            # 按模块组织测试用例
-│   └── module2/            
+│   │   ├── __init__.py     # 模块初始化文件
+│   │   └── test_user_nick.py # 用户昵称功能测试
+│   └── module2/            # 其他模块测试用例  
 ├── utils/                  # 工具类目录
-│   ├── api_client.py       # 请求封装
-│   ├── assert_utils.py     # 断言工具
-│   ├── db_utils.py         # 数据库工具
-│   ├── logger.py           # 日志工具
-│   └── data_handler.py     # 数据处理工具
+│   ├── __init__.py         # 工具包初始化文件
+│   ├── api_client.py       # 请求封装（HTTP客户端基类，处理重试、日志等）
+│   ├── assert_utils.py     # 断言工具（提供多种断言方式和规则）
+│   ├── client_factory.py   # 客户端工厂（创建和管理用户客户端）
+│   ├── data_handler.py     # 数据处理工具（加载配置、测试数据、变量替换）
+│   ├── db_utils.py         # 数据库工具（数据库连接和操作封装）
+│   ├── logger.py           # 日志工具（统一日志记录和配置）
+│   └── user_client.py      # 用户客户端（继承API客户端，封装用户操作）
 ├── requirements.txt        # 项目依赖
-├── pytest.ini              # Pytest配置
-├── run.py                  # 启动测试的入口
+├── pytest.ini              # Pytest配置（测试发现规则、插件配置等）
+├── run.py                  # 启动测试的入口（命令行参数解析、测试执行）
 └── README.md               # 项目说明文档
 ```
+
+## 核心组件说明
+
+### 1. 配置文件 (config/)
+
+#### 1.1 config.yaml
+主配置文件，包含以下内容：
+- 环境配置：当前环境和各环境基础URL
+- 请求配置：默认请求头、超时设置、重试策略
+- 测试控制：失败重试、截图设置、报告生成
+
+#### 1.2 db_config.yaml
+数据库配置文件，包含各环境的数据库连接信息：
+- 数据库类型
+- 主机和端口
+- 用户名和密码
+- 连接池设置
+
+#### 1.3 users.yaml
+测试用户配置文件，包含各测试账号信息：
+- 手机号和国家代码
+- 用户描述信息
+- 可选的密码或固定验证码
+
+### 2. 工具类 (utils/)
+
+#### 2.1 api_client.py
+HTTP请求封装，核心功能：
+- 自动管理会话和请求头
+- 请求重试机制
+- 详细请求和响应日志
+- 支持常见HTTP方法和文件上传/下载
+
+#### 2.2 user_client.py
+用户客户端，继承自api_client.py，提供：
+- 自动登录功能
+- 用户信息管理
+- 用户相关API的封装（如修改昵称）
+
+#### 2.3 client_factory.py
+客户端工厂，用于创建和管理用户客户端：
+- 根据配置创建不同用户的客户端
+- 缓存已创建的客户端实例
+- 支持创建自定义客户端
+
+#### 2.4 data_handler.py
+数据处理工具，提供：
+- 配置文件加载
+- 测试数据读写
+- 变量替换和随机数据生成
+- 响应数据提取
+
+#### 2.5 assert_utils.py
+断言工具，支持多种断言方式：
+- 状态码断言
+- 响应内容包含断言
+- JSON路径值断言
+- 正则表达式断言
+- 复合断言规则
+
+#### 2.6 db_utils.py
+数据库工具，提供：
+- 数据库连接管理
+- SQL查询和执行
+- 查询结果处理
+- 事务管理
+
+#### 2.7 logger.py
+日志工具，基于loguru实现：
+- 统一日志格式
+- 日志轮转和保留
+- 多级别日志输出
+- 控制台和文件双输出
+
+### 3. 测试用例 (testcases/)
+
+#### 3.1 conftest.py
+Pytest配置和全局夹具：
+- API客户端夹具
+- 数据库处理器夹具
+- 客户端工厂夹具
+- 会话变量夹具
+- 测试前后钩子函数
+
+#### 3.2 模块化测试用例
+按功能模块组织的测试用例：
+- module1/test_user_nick.py：用户昵称功能测试
+- 其他模块化测试文件
+
+### 4. 测试数据 (data/)
+
+#### 4.1 api_data/
+YAML格式的测试数据文件：
+- 请求信息（URL、方法、参数）
+- 预期结果（状态码、内容、JSON结构）
+- 支持变量和引用
+
+### 5. 执行入口 (run.py)
+
+测试执行的主入口：
+- 命令行参数解析
+- 环境和测试范围选择
+- 测试执行和报告生成
+- 测试结果处理
 
 ## 安装与配置
 
@@ -161,43 +273,44 @@ pyenv-win与venv结合使用可以为不同Python版本创建虚拟环境：
 
 ## 运行测试框架
 
-1. **基本运行**：
-   - 确保虚拟环境已激活
-   - 执行以下命令运行所有测试：
-   ```
-   python run.py
-   ```
+### 基本运行
+```bash
+# 运行所有测试
+python run.py
 
-2. **运行特定测试**：
-   - 运行冒烟测试：
-   ```
-   python run.py --marker smoke
-   ```
-   - 运行特定模块：
-   ```
-   python run.py --module module1
-   ```
-   - 生成HTML报告：
-   ```
-   python run.py --report --open
-   ```
-   - 生成Allure报告（需要先安装Allure）：
-   ```
-   python run.py --allure --open
-   ```
+# 运行特定模块测试
+python run.py --module module1
 
-3. **安装Allure**（可选）：
-   - 要使用Allure报告，需要先安装Allure命令行工具：
-   - 下载[Allure](https://github.com/allure-framework/allure2/releases)
-   - 解压到一个目录，例如：`D:\allure`
-   - 将allure的bin目录添加到系统PATH环境变量：`D:\allure\bin`
-   - 重新打开命令提示符，验证安装：`allure --version`
+# 生成HTML报告
+python run.py --report --open
 
-## 使用指南
+# 生成Allure报告
+python run.py --allure --open
 
-### 编写测试数据
-在 `data/api_data/` 目录下创建YAML文件，按照以下格式定义测试数据：
+# 指定环境
+python run.py --env test
 
+# 运行标记的测试用例
+python run.py --marker smoke
+```
+
+### 命令行参数
+run.py支持以下命令行参数：
+- `--env`：指定测试环境（dev, test, prod）
+- `--case`：指定要运行的测试用例
+- `--module`：指定要运行的测试模块
+- `--marker`：指定要运行的测试标记
+- `--report`：生成HTML报告
+- `--allure`：生成Allure报告
+- `--open`：在浏览器中打开报告
+- `--xdist`：并行执行测试的进程数
+- `--reruns`：失败重试次数
+- `--debug`：启用调试模式
+
+## 测试用例编写
+
+### 数据驱动测试
+在data/api_data/目录下创建YAML文件定义测试数据：
 ```yaml
 # 测试用例标题
 test_login:
@@ -219,13 +332,11 @@ test_login:
       message: "登录成功"
 ```
 
-### 编写测试用例
-在 `testcases/` 目录下创建测试文件，例如：
-
+### 测试类编写
+在testcases/目录下创建测试文件：
 ```python
 import pytest
 import allure
-from utils.api_client import APIClient
 from utils.data_handler import load_test_data
 
 @allure.feature("用户管理")
@@ -233,189 +344,63 @@ class TestUserAPI:
     
     @allure.story("用户登录")
     @allure.title("测试成功登录")
-    def test_login_success(self, api_client):
+    @pytest.mark.smoke
+    def test_login_success(self, client_factory):
         """测试用户成功登录"""
-        # 加载测试数据
-        test_data = load_test_data("user/login.yaml", "test_login")
+        # 获取客户端
+        client = client_factory.get_client("user1")
         
-        # 发送请求
-        response = api_client.request(
-            method=test_data["request"]["method"],
-            url=test_data["request"]["url"],
-            headers=test_data["request"]["headers"],
-            json=test_data["request"]["json"]
-        )
+        # 执行登录
+        success = client.login()
         
         # 断言
-        assert response.status_code == test_data["expected"]["status_code"]
-        assert test_data["expected"]["contains"] in response.text
-        
-        # JSON响应断言
-        response_json = response.json()
-        assert response_json["code"] == test_data["expected"]["json"]["code"]
-        assert response_json["message"] == test_data["expected"]["json"]["message"]
+        assert success, "用户登录失败"
+        assert client.get_user_id() is not None, "登录成功但未获取到用户ID"
 ```
 
-### 运行测试
-使用以下命令运行测试：
+## 框架特性和最佳实践
 
-```bash
-# 运行所有测试
-pytest
+### 1. 分层架构
+- 测试数据、测试逻辑和工具类严格分离
+- 便于维护和扩展
 
-# 运行特定模块测试
-pytest testcases/module1/
+### 2. 数据驱动
+- 使用YAML配置测试数据
+- 实现数据与代码分离
+- 支持变量替换和随机数据
 
-# 生成Allure报告
-pytest --alluredir=./reports/allure-results
-allure serve ./reports/allure-results
-```
+### 3. 多环境支持
+- 配置文件支持多环境
+- 简单切换测试环境
+- 环境特定配置管理
 
-或使用入口文件：
+### 4. 灵活断言
+- 支持多种断言方式
+- 自定义断言规则
+- 清晰的断言失败信息
 
-```bash
-python run.py
-```
+### 5. 详细日志和报告
+- 请求和响应详细日志
+- 支持HTML和Allure报告
+- 失败用例屏幕截图
 
-## 核心功能
+## 执行流程详解
 
-### API客户端封装
-`utils/api_client.py` 封装了Requests库，提供统一的请求方法：
+run.py执行流程：
+1. 解析命令行参数
+2. 设置工作目录和日志
+3. 构建pytest命令参数
+4. 执行测试用例
+5. 生成测试报告
+6. 处理测试结果
 
-```python
-# 简化示例
-class APIClient:
-    def __init__(self, base_url):
-        self.base_url = base_url
-        self.session = requests.Session()
-    
-    def request(self, method, url, **kwargs):
-        full_url = self.base_url + url
-        response = self.session.request(method, full_url, **kwargs)
-        # 日志记录请求和响应
-        return response
-```
-
-### 测试数据管理
-`utils/data_handler.py` 提供测试数据的加载和处理：
-
-```python
-# 简化示例
-def load_test_data(file_path, key=None):
-    """从YAML文件加载测试数据"""
-    with open(f"data/api_data/{file_path}", "r", encoding="utf-8") as f:
-        data = yaml.safe_load(f)
-    return data[key] if key else data
-```
-
-### 日志管理
-`utils/logger.py` 基于Loguru实现统一的日志管理：
-
-```python
-# 简化示例
-from loguru import logger
-
-def setup_logger():
-    logger.add(
-        "logs/api_test_{time}.log",
-        rotation="1 day",
-        format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}"
-    )
-    return logger
-```
-
-### 数据库工具
-`utils/db_utils.py` 提供数据库操作能力：
-
-```python
-# 简化示例
-import pymysql
-from pymysql.cursors import DictCursor
-
-class DBHandler:
-    def __init__(self, config):
-        self.conn = pymysql.connect(**config)
-    
-    def query(self, sql):
-        with self.conn.cursor(DictCursor) as cursor:
-            cursor.execute(sql)
-            return cursor.fetchall()
-```
-
-## 高级特性
-
-### 钩子函数
-在 `testcases/conftest.py` 中定义全局夹具和钩子：
-
-```python
-import pytest
-from utils.api_client import APIClient
-from utils.logger import setup_logger
-from utils.data_handler import load_config
-
-# 初始化日志
-logger = setup_logger()
-
-@pytest.fixture(scope="session")
-def api_client():
-    """创建并返回API客户端实例"""
-    config = load_config()
-    base_url = config["base_url"]
-    client = APIClient(base_url=base_url)
-    return client
-
-@pytest.hookimpl(tryfirst=True)
-def pytest_runtest_setup(item):
-    """测试用例开始前执行"""
-    logger.info(f"开始执行: {item.nodeid}")
-```
-
-### 参数化测试
-利用Pytest的参数化功能：
-
-```python
-@pytest.mark.parametrize("user_id, expected_name", [
-    ("1001", "张三"),
-    ("1002", "李四"),
-    ("1003", "王五")
-])
-def test_get_user_info(api_client, user_id, expected_name):
-    """参数化测试获取用户信息"""
-    response = api_client.request("GET", f"/api/users/{user_id}")
-    assert response.status_code == 200
-    user_data = response.json()
-    assert user_data["name"] == expected_name
-```
-
-## 最佳实践
-
-1. **分层设计**：将测试数据、测试用例和工具类分离
-2. **数据驱动**：使用YAML文件管理测试数据
-3. **良好的报告**：集成Allure生成详细的测试报告
-4. **日志管理**：记录详细的请求、响应和断言信息
-5. **环境隔离**：支持多环境配置切换
-6. **持续集成**：易于集成Jenkins等CI工具
-
-## 常见问题
-
-### Q: 如何切换测试环境？
-A: 修改 `config/config.yaml` 文件中的 `current_env` 配置项。
-
-### Q: 如何添加自定义断言？
-A: 在 `utils/assert_utils.py` 中添加新的断言方法，然后在测试用例中使用。
-
-### Q: 如何处理接口依赖？
-A: 使用Pytest夹具管理接口依赖，或在 `utils/data_handler.py` 中实现数据关联功能。
-
-### Q: 如何使用不同Python版本运行测试？
-A: 使用pyenv-win切换到所需Python版本，然后运行测试：
-```
-pyenv local 3.9.9
-python -m venv venv_py39
-.\venv_py39\Scripts\activate
-pip install -r requirements.txt
-python run.py
-```
+具体测试执行过程：
+1. pytest加载测试模块和用例
+2. 执行conftest.py中的夹具和钩子
+3. 运行测试前准备（如登录）
+4. 执行测试步骤和断言
+5. 记录测试结果和日志
+6. 运行测试后清理
 
 ---
 

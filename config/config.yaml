@@ -1,5 +1,5 @@
 # 环境配置
-current_env: test  # 可选: dev, test, prod
+current_env: test  # 可选: dev, test, prod（当前自动化只在测试环境运行）
 
 # 环境URL配置
 env_config:
@@ -16,19 +16,19 @@ env_config:
 # 请求配置
 request:
   headers:
-    Content-Type: "application/json"
-    User-Agent: "DuooInterfaceAuto/1.0"
-  verify_ssl: false
-  max_retries: 3
-  retry_delay: 1
+    Content-Type: "application/json" # 请求头
+    User-Agent: "DuooInterfaceAuto/1.0" # 请求头
+  verify_ssl: false # 是否验证SSL证书
+  max_retries: 3 # 最大重试次数
+  retry_delay: 1 # 重试延迟时间
 
 # 测试控制
 test_control:
-  screenshot_on_failure: true
-  allow_rerun_failed: true
-  max_rerun_times: 2
-  generate_report: true
+  screenshot_on_failure: true # 是否在失败时截图
+  allow_rerun_failed: true # 是否允许重新运行失败用例
+  max_rerun_times: 2 # 最大重新运行次数
+  generate_report: true # 是否生成报告
 
 # 其他配置
-email_notify: false
-debug_mode: true 
+email_notify: false # 是否发送邮件通知
+debug_mode: true # 是否开启调试模式

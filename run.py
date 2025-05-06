@@ -8,8 +8,86 @@ import argparse
 import subprocess
 import pytest
 import webbrowser
-from datetime import datetime
+import re
+import shutil
+import yaml
+from datetime import datetime, timedelta
 from utils.logger import logger
+
+# 默认配置
+DEFAULT_REPORTS_RETENTION_DAYS = 30
+
+
+def load_config():
+    """
+    加载配置文件
+    :return: 配置字典
+    """
+    config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config", "config.yaml")
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            return yaml.safe_load(f)
+    except Exception as e:
+        logger.error(f"加载配置文件失败: {str(e)}")
+        return {}
+
+
+def cleanup_reports():
+    """
+    清理旧的报告文件
+    根据配置保留最近N天的报告，删除更早的报告
+    """
+    # 加载配置
+    config = load_config()
+    cleanup_config = config.get('cleanup', {})
+    
+    # 检查是否启用清理
+    if not cleanup_config.get('enabled', True):
+        logger.info("文件自动清理功能已禁用")
+        return
+    
+    # 获取保留天数
+    retention_days = cleanup_config.get('reports_retention_days', DEFAULT_REPORTS_RETENTION_DAYS)
+    
+    reports_dir = "reports"
+    if not os.path.exists(reports_dir):
+        return
+    
+    # 获取当前日期
+    now = datetime.now()
+    cutoff_date = now - timedelta(days=retention_days)
+    
+    logger.info(f"开始清理报告文件，保留最近{retention_days}天的报告...")
+    
+    # 用于匹配报告目录名称中的日期时间戳的正则表达式
+    # 匹配格式如: html_report_20230526_120000, allure_results_20230526_120000
+    pattern = r'(?:html_report|allure_results|allure_report)_(\d{8})_(\d{6})'
+    
+    removed_count = 0
+    
+    # 遍历reports目录下的所有子目录
+    for item in os.listdir(reports_dir):
+        item_path = os.path.join(reports_dir, item)
+        
+        # 如果是目录，检查是否是测试报告目录
+        if os.path.isdir(item_path):
+            match = re.search(pattern, item)
+            if match:
+                # 提取日期和时间
+                date_str, time_str = match.groups()
+                try:
+                    # 解析日期和时间
+                    item_datetime = datetime.strptime(f"{date_str}_{time_str}", "%Y%m%d_%H%M%S")
+                    
+                    # 检查是否超过保留期限
+                    if item_datetime < cutoff_date:
+                        logger.debug(f"删除过期报告目录: {item_path}")
+                        shutil.rmtree(item_path)
+                        removed_count += 1
+                except ValueError:
+                    logger.warning(f"无法解析报告目录的日期时间: {item}")
+    
+    logger.info(f"报告清理完成，共删除了 {removed_count} 个过期报告目录")
 
 
 def parse_args():
@@ -55,6 +133,9 @@ def main():
     # 设置工作目录为项目根目录
     project_root = os.path.dirname(os.path.abspath(__file__))
     os.chdir(project_root)
+    
+    # 清理旧的报告文件
+    cleanup_reports()
     
     # 日志记录
     logger.info("=" * 80)

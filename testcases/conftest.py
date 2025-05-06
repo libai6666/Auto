@@ -8,7 +8,7 @@ import allure
 from datetime import datetime
 
 from utils.api_client import APIClient
-from utils.logger import logger, setup_logger
+from utils.logger import logger, setup_logger, cleanup_logs
 from utils.data_handler import load_config
 from utils.db_utils import MySQLHandler
 from utils.client_factory import ClientFactory
@@ -18,6 +18,16 @@ logger = setup_logger()
 
 # 测试会话数据
 session_data = {}
+
+
+@pytest.fixture(scope="session", autouse=True)
+def cleanup_old_logs():
+    """
+    在测试会话开始前自动清理旧的日志文件
+    """
+    logger.info("正在运行自动日志清理...")
+    cleanup_logs()
+    yield
 
 
 def pytest_configure(config):

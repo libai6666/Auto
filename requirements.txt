@@ -10,4 +10,6 @@ pytest-rerunfailures==12.0
 jsonpath==0.82
 jsonschema==4.19.2
 faker==19.13.0
-pytest-html
+pytest-html==4.1.1
+urllib3==2.0.7
+allure-python-commons==2.13.2

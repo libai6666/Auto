@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import time
+import re
 from utils.api_client import APIClient
 from utils.logger import logger
 from utils.data_handler import load_config
@@ -67,6 +68,33 @@ class UserClient(APIClient):
         
         logger.info(f"发送短信验证码成功，手机: {self.user_config['phoneCode']}-{self.user_config['phoneNumber']}")
         
+        # 新增步骤：获取实际验证码
+        full_phone = f"{self.user_config['phoneCode']}{self.user_config['phoneNumber']}"
+        get_code_response = super().request(
+            method="GET",
+            url=f"/api/user/v1/operate/wl?operateUid=100&phoneNum={full_phone}"
+        )
+        
+        # 检查获取验证码是否成功
+        if get_code_response.status_code != 200:
+            logger.error(f"获取验证码失败: {get_code_response.text}")
+            return False
+        
+        code_result = get_code_response.json()
+        if code_result.get("errorCode") != 0 or not code_result.get("succeed"):
+            logger.error(f"获取验证码失败: {code_result.get('errorMessage')}")
+            return False
+        
+        # 从响应中提取验证码
+        code_message = code_result["data"]["data"]
+        sms_code_match = re.search(r'code is (\d+)', code_message)
+        if not sms_code_match:
+            logger.error(f"无法从响应中提取验证码: {code_message}")
+            return False
+        
+        sms_code = sms_code_match.group(1)
+        logger.info(f"成功获取验证码: {sms_code}")
+        
         # 第二步：执行登录
         login_response = super().request(
             method="POST",
@@ -76,7 +104,7 @@ class UserClient(APIClient):
                 "channel": "phone",
                 "token": self.user_config["phoneNumber"],
                 "phoneCode": self.user_config["phoneCode"],
-                "smsCode": "123456"  # 固定验证码
+                "smsCode": sms_code  # 使用提取的验证码
             }
         )
         
@@ -97,7 +125,10 @@ class UserClient(APIClient):
         # 更新Authorization头
         self.session.headers.update({"Authorization": self.access_token})
         
-        logger.info(f"登录成功，用户ID: {self.user_info['uid']}, 昵称: {self.user_info['nick']}")
+        # 获取用户身份描述
+        role_description = self.get_user_role_description()
+        
+        logger.info(f"登录成功，用户ID: {self.user_info['uid']}, 昵称: {self.user_info['nick']}, 身份: {role_description}")
         return True
     
     def request(self, method, url, params=None, data=None, json=None, headers=None, files=None, **kwargs):
@@ -124,6 +155,36 @@ class UserClient(APIClient):
     def get_user_role(self):
         """获取用户角色"""
         return self.user_info["userRoles"][0] if self.user_info and "userRoles" in self.user_info else None
+    
+    def get_user_role_description(self):
+        """
+        获取用户身份描述
+        根据userRoles数组判断用户身份：
+        - 只有1：用户
+        - 包含2：主播
+        - 包含4：代理
+        - 同时包含2和4：主播和代理
+        :return: 用户身份描述
+        """
+        if not self.user_info or "userRoles" not in self.user_info:
+            return "未知"
+        
+        roles = self.user_info["userRoles"]
+        
+        # 检查是否为主播和代理
+        if 2 in roles and 4 in roles:
+            return "主播和代理"
+        # 检查是否为主播
+        elif 2 in roles:
+            return "主播"
+        # 检查是否为代理
+        elif 4 in roles:
+            return "代理"
+        # 默认为普通用户
+        elif 1 in roles:
+            return "用户"
+        else:
+            return "未知"
     
     def modify_nick(self, new_nick):
         """
@@ -152,3 +213,11 @@ class UserClient(APIClient):
         
         logger.info(f"修改昵称成功: {new_nick}")
         return True, response 
+    
+if __name__ == "__main__":
+    user_config = {
+        "phoneNumber": "17447",
+        "phoneCode": "43"
+    }
+    user_client = UserClient(user_config)
+    user_client.login()

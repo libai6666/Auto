@@ -24,6 +24,33 @@ db_config:
       database: "prod_db"
       charset: "utf8mb4"
 
+  # PostgreSQL 配置
+  postgresql:
+    test:
+      # 注意: 172.16.0.99 是华为云VPC内部的私有IP地址，从公网无法直接访问
+      # 需要使用RDS实例的公网访问地址，例如: postgres-xxx.rds.huaweicloud.com
+      # 请在华为云RDS控制台开启公网访问，并使用分配的公网地址替换下面的host
+      host: "172.16.0.99"  # 替换为RDS公网访问地址
+      port: 5432
+      user: "duoo"
+      password: "Duoo@melot2023"
+      database: "duoo"
+      sslmode: "prefer"
+    dev:
+      host: "dev-pg.example.com"
+      port: 5432
+      user: "dev_user"
+      password: "dev_password"
+      database: "dev_db"
+      sslmode: "prefer"
+    prod:
+      host: "prod-pg.example.com"
+      port: 5432
+      user: "prod_user"
+      password: "prod_password"
+      database: "prod_db"
+      sslmode: "prefer"
+
   # SQLite 配置 (可选)
   sqlite:
     db_file: "data/test.db"

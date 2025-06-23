@@ -4,6 +4,7 @@
 from utils.user_client import UserClient
 from utils.logger import logger
 from utils.data_handler import load_config
+import random
 
 
 class ClientFactory:

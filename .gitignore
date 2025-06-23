@@ -52,6 +52,7 @@ Desktop.ini
 $RECYCLE.BIN/
 
 # 其他临时文件
+data/temp/
 *.bak
 *.tmp
 *.temp

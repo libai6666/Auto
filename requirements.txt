@@ -1,5 +1,5 @@
 pytest==7.4.3
-requests==2.31.0
+requests>=2.28.0
 PyYAML==6.0.1
 allure-pytest==2.13.2
 loguru==0.7.2
@@ -14,3 +14,10 @@ pytest-html==4.1.1
 urllib3==2.0.7
 allure-python-commons==2.13.2
 psycopg2-binary==2.9.10
+pillow>=9.0.0
+pypinyin>=0.48.0
+
+# 可能的其他项目依赖
+# 以下是猜测的可能依赖项，请根据项目实际情况调整
+# pytest>=7.0.0  # 如果使用pytest进行测试
+# python-dotenv>=0.20.0  # 如果使用dotenv管理环境变量

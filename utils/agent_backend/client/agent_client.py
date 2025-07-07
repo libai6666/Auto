@@ -87,6 +87,11 @@ class AgentClient(APIClient):
         # 合并自定义头部
         merged_headers = {}
         merged_headers.update(self.agent_headers)
+        
+        # 如果设置了代理ID，则添加到请求头中
+        if self.agent_id:
+            merged_headers["agentId"] = str(self.agent_id)
+            
         if headers:
             merged_headers.update(headers)
         

@@ -10,18 +10,6 @@ class AdminAPI:
     """
     
     @staticmethod
-    def get_common_headers():
-        """
-        获取公共请求头
-        :return: 公共请求头字典
-        """
-        return {
-            "Content-Type": "application/json",
-            "Accept": "*/*",
-            "Connection": "keep-alive"
-        }
-    
-    @staticmethod
     def login(client, username="admin", password="W67hW7/uh9cav+hRF71uJFut0Cnrtf8T0KsaawUocDfuJAuDWr+zutnakwEybnn2WDlYAdyZiaJaNw8pH6pDzQ=="):
         """
         登录管理后台
@@ -39,11 +27,8 @@ class AdminAPI:
             "password": password
         }
         
-        # 使用公共请求头
-        headers = AdminAPI.get_common_headers()
-        
-        # 发送POST请求
-        response = client.post(url, json=data, headers=headers)
+        # 客户端会自动添加请求头
+        response = client.post(url, json=data)
         
         # 检查响应
         if response.status_code == 200:
@@ -85,11 +70,8 @@ class AdminAPI:
         url = "/admin/agent/generator/invite/code"
         logger.info(f"生成邀请码: 数量={num}")
         
-        # 使用公共请求头
-        headers = AdminAPI.get_common_headers()
-        
-        # 使用POST请求，添加headers参数
-        response = client.post(url, json={"num": num}, headers=headers)
+        # 客户端会自动添加请求头
+        response = client.post(url, json={"num": num})
         
         # 检查响应
         if response.status_code in [200, 201]:  # 接受200和201状态码
@@ -138,10 +120,8 @@ class AdminAPI:
             "sort": sort
         }
         
-        # 使用公共请求头
-        headers = AdminAPI.get_common_headers()
-        
-        response = client.get(url, params=params, headers=headers)
+        # 客户端会自动添加请求头
+        response = client.get(url, params=params)
         
         # 检查响应
         if response.status_code == 200:

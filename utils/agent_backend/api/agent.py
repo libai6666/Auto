@@ -12,18 +12,6 @@ class AgentAPI:
     """
     
     @staticmethod
-    def get_common_headers():
-        """
-        获取公共请求头
-        :return: 公共请求头字典
-        """
-        return {
-            "Content-Type": "application/json",
-            "Accept": "*/*",
-            "Connection": "keep-alive"
-        }
-    
-    @staticmethod
     def send_code(client, area_code, phone):
         """
         发送验证码
@@ -35,10 +23,8 @@ class AgentAPI:
         url = f"/agent/admin/code?areaCode={area_code}&phone={phone}"
         logger.info(f"发送验证码: {area_code}-{phone}")
         
-        # 使用公共请求头
-        headers = AgentAPI.get_common_headers()
-        
-        response = client.get(url, headers=headers)
+        # 客户端会自动添加请求头，包括agentId等信息
+        response = client.get(url)
         
         # 检查响应
         if response.status_code == 200:
@@ -78,10 +64,8 @@ class AgentAPI:
             "operate": "代理短信验证码"
         }
         
-        # 使用公共请求头
-        headers = AgentAPI.get_common_headers()
-        
-        response = client.post(url, json=data, headers=headers)
+        # 客户端会自动添加请求头，包括agentId等信息
+        response = client.post(url, json=data)
         
         # 检查响应
         if response.status_code == 200:
@@ -199,10 +183,8 @@ class AgentAPI:
             log_data["password"] = "******"  # 日志中隐藏密码
         logger.debug(f"请求参数: {log_data}")
         
-        # 使用公共请求头
-        headers = AgentAPI.get_common_headers()
-        
-        response = client.post(url, json=data, headers=headers)
+        # 客户端会自动添加请求头，包括agentId等信息
+        response = client.post(url, json=data)
         
         # 检查响应
         if response.status_code == 200:
@@ -222,6 +204,54 @@ class AgentAPI:
                 logger.error(f"注册/登录代理失败: {data.get('message', '未知错误')}")
         else:
             logger.error(f"注册/登录代理请求失败: HTTP {response.status_code}")
+            # 记录更详细的错误信息
+            try:
+                error_data = response.json()
+                logger.error(f"错误详情: {error_data}")
+            except:
+                logger.error(f"错误响应内容: {response.text}")
+        
+        return False, response.json() if response.text else {}
+
+    @staticmethod
+    def set_password(client):
+        """
+        设置密码接口
+        :param client: 代理客户端
+        :return: (是否成功, 响应对象)
+        """
+        url = "/agent/admin/set/password"
+        logger.info("调用设置密码接口")
+        
+        # 检查客户端是否已登录
+        if not client.is_logged_in():
+            logger.error("客户端未登录，无法调用设置密码接口")
+            return False, {"message": "客户端未登录"}
+        
+        # 客户端会自动添加请求头，包括agentId等信息
+        response = client.get(url)
+        
+        # 检查响应
+        if response.status_code == 200:
+            data = response.json()
+            if data.get("code") == 0 and data.get("message") == "success":
+                # 提取响应数据
+                response_data = data.get("data", {})
+                agent_id = response_data.get("agentId")
+                is_upload = response_data.get("isUpload")
+                checked = response_data.get("checked")
+                username = response_data.get("username")
+                password_set = response_data.get("passwordSet")
+                coin_merchant = response_data.get("coinMerchant")
+                
+                logger.info(f"设置密码接口调用成功: 代理ID={agent_id}, 用户名={username}")
+                logger.info(f"是否上传国家和名称: {is_upload}, 是否通过审核: {checked}, 是否设置密码: {password_set}, 是否商户: {coin_merchant}")
+                
+                return True, data
+            else:
+                logger.error(f"设置密码接口调用失败: {data.get('message', '未知错误')}")
+        else:
+            logger.error(f"设置密码接口请求失败: HTTP {response.status_code}")
             # 记录更详细的错误信息
             try:
                 error_data = response.json()

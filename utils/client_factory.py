@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from utils.user_client import UserClient
+from utils.app.client.user_client import UserClient
+from utils.agent_backend.client.agent_client import AgentClient
+from utils.manage_backend.client.admin_client import AdminClient
 from utils.logger import logger
 from utils.data_handler import load_config
 import random
@@ -20,6 +22,8 @@ class ClientFactory:
             self.user_configs = {}
         
         self.clients = {}  # 缓存已创建的客户端
+        self.agent_clients = {}  # 缓存已创建的代理客户端
+        self.admin_clients = {}  # 缓存已创建的管理客户端
     
     def get_client(self, user_id):
         """
@@ -86,3 +90,67 @@ class ClientFactory:
     def get_all_clients(self):
         """获取所有已创建的客户端"""
         return self.clients 
+    
+    def create_agent_client(self, identifier=None):
+        """
+        创建代理后台客户端
+        :param identifier: 标识符，用于缓存客户端
+        :return: AgentClient实例
+        """
+        # 生成默认标识符
+        if identifier is None:
+            identifier = f"agent_{len(self.agent_clients) + 1}"
+        
+        # 检查缓存中是否已有此客户端
+        if identifier in self.agent_clients:
+            return self.agent_clients[identifier]
+        
+        # 创建新客户端
+        client = AgentClient()
+        self.agent_clients[identifier] = client
+        
+        logger.info(f"创建代理后台客户端: {identifier}")
+        return client
+    
+    def create_admin_client(self, identifier=None):
+        """
+        创建管理后台客户端
+        :param identifier: 标识符，用于缓存客户端
+        :return: AdminClient实例
+        """
+        # 生成默认标识符
+        if identifier is None:
+            identifier = f"admin_{len(self.admin_clients) + 1}"
+        
+        # 检查缓存中是否已有此客户端
+        if identifier in self.admin_clients:
+            return self.admin_clients[identifier]
+        
+        # 创建新客户端
+        client = AdminClient()
+        self.admin_clients[identifier] = client
+        
+        logger.info(f"创建管理后台客户端: {identifier}")
+        return client
+    
+    def create_agent_clients(self, count, base_phone="9000000000", area_code="86"):
+        """
+        批量创建多个代理后台客户端
+        :param count: 要创建的客户端数量
+        :param base_phone: 基础电话号码，会递增
+        :param area_code: 国别码
+        :return: 客户端列表
+        """
+        clients = []
+        base_num = int(base_phone)
+        
+        for i in range(count):
+            phone = str(base_num + i)
+            identifier = f"agent_{area_code}_{phone}"
+            client = self.create_agent_client(identifier)
+            # 设置基础信息，注册后会更新
+            client.phone = phone
+            client.area_code = area_code
+            clients.append(client)
+        
+        return clients 

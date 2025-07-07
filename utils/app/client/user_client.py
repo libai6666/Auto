@@ -7,7 +7,7 @@ import os
 from utils.api_client import APIClient
 from utils.logger import logger
 from utils.data_handler import load_config
-from utils.api.user import UserAPI
+from utils.app.api.user import UserAPI
 from pypinyin import lazy_pinyin
 
 
@@ -208,12 +208,4 @@ class UserClient(APIClient):
             0: '零', 1: '一', 2: '二', 3: '三', 4: '四',
             5: '五', 6: '六', 7: '七', 8: '八', 9: '九'
         }
-        return chinese_dict.get(number, '零')
-
-if __name__ == "__main__":
-    user_config = {
-        "phoneNumber": "17441",
-        "phoneCode": "43"
-    }
-    user_client = UserClient(user_config)
-    user_client.login()
+        return chinese_dict.get(number, '零') 

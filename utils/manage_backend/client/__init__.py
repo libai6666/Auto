@@ -6,4 +6,4 @@
 包含与管理后台相关的客户端
 """
 
-from utils.manage_backend.client.admin_client import AdminClient 
+from utils.manage_backend.client.manager_client import ManagerClient 

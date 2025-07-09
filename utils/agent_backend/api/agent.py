@@ -317,3 +317,193 @@ class AgentAPI:
                 logger.error(f"错误响应内容: {response.text}")
         
         return False, response.json() if response.text else {} 
+
+    @staticmethod
+    def login(client, area_code, phone, password=None, code=None, login_type="1"):
+        """
+        代理登录
+        :param client: 代理客户端
+        :param area_code: 国别码
+        :param phone: 手机号
+        :param password: 密码，登录方式为2时必传
+        :param code: 验证码，登录方式为1时必传
+        :param login_type: 登录方式，1：短信验证码登录，2：密码登录
+        :return: (是否成功, 响应对象)
+        """
+        logger.info(f"代理登录: {area_code}-{phone}, 登录方式: {login_type}")
+        
+        # 构建请求数据
+        data = {
+            "areaCode": area_code,
+            "phone": phone,
+            "loginType": login_type
+        }
+        
+        # 根据登录方式添加必要参数
+        if login_type == "1":  # 短信验证码登录
+            if not code:
+                logger.error("验证码登录必须提供验证码")
+                return False, {"message": "验证码不能为空"}
+            data["code"] = code
+        elif login_type == "2":  # 密码登录
+            if not password:
+                logger.error("密码登录必须提供密码")
+                return False, {"message": "密码不能为空"}
+            data["password"] = password
+        
+        # 记录请求参数（不记录密码）
+        log_data = data.copy()
+        if "password" in log_data:
+            log_data["password"] = "******"
+        logger.debug(f"请求参数: {log_data}")
+        
+        # 发送请求
+        url = "/agent/admin/login"
+        response = client.post(url, json=data)
+        
+        # 检查响应
+        if response.status_code == 200:
+            response_data = response.json()
+            if response_data.get("code") == 0 and response_data.get("message") == "success":
+                # 从嵌套的data字段中获取token和agentId
+                agent_data = response_data.get("data", {})
+                token = agent_data.get("token")
+                agent_id = agent_data.get("agentId")
+                
+                # 设置代理客户端的信息
+                client.set_token(token)
+                client.set_agent_info(
+                    agent_id,
+                    agent_data.get("username", f"{area_code}{phone}"),
+                    phone,
+                    area_code
+                )
+                logger.info(f"代理登录成功: ID={agent_id}, 手机号={area_code}-{phone}")
+                return True, agent_data
+            else:
+                logger.error(f"代理登录失败: {response_data.get('message', '未知错误')}")
+        else:
+            logger.error(f"代理登录请求失败: HTTP {response.status_code}")
+            # 记录更详细的错误信息
+            try:
+                error_data = response.json()
+                logger.error(f"错误详情: {error_data}")
+            except:
+                logger.error(f"错误响应内容: {response.text}")
+        
+        return False, response.json() if response.text else {}
+    
+    @staticmethod
+    def get_bind_list(client, page_index=1, page_size=10, agent_id=None, actor_id=None):
+        """
+        获取主播绑定申请列表
+        :param client: 代理客户端
+        :param page_index: 页码，从1开始
+        :param page_size: 每页数量
+        :param agent_id: 代理ID，可选
+        :param actor_id: 主播ID，可选
+        :return: (是否成功, 绑定列表, 响应对象)
+        """
+        logger.info(f"获取主播绑定申请列表: 页码={page_index}, 每页数量={page_size}")
+        
+        # 检查客户端是否已登录
+        if not client.is_logged_in():
+            logger.error("客户端未登录，无法获取主播绑定申请列表")
+            return False, None, {"message": "客户端未登录"}
+        
+        # 构建请求参数
+        params = {
+            "pageIndex": page_index,
+            "pageSize": page_size
+        }
+        
+        # 如果提供了代理ID，则添加
+        if agent_id:
+            params["agentId"] = agent_id
+        elif client.agent_id:
+            # 如果没有提供代理ID，但客户端有代理ID，则使用客户端的代理ID
+            params["agentId"] = client.agent_id
+        else:
+            logger.error("未提供代理ID，且客户端无代理ID信息")
+            return False, None, {"message": "未提供代理ID"}
+        
+        # 如果提供了主播ID，则添加
+        if actor_id:
+            params["actorId"] = actor_id
+        
+        # 发送请求
+        url = "/agent/admin/actor/bind/list"
+        response = client.get(url, params=params)
+        
+        # 检查响应
+        if response.status_code == 200:
+            response_data = response.json()
+            if response_data.get("code") == 0 and response_data.get("message") == "success":
+                bind_data = response_data.get("data", {})
+                records = bind_data.get("records", [])
+                total = bind_data.get("total", 0)
+                logger.info(f"获取主播绑定申请列表成功: 总数={total}, 当前页记录数={len(records)}")
+                return True, records, response_data
+            else:
+                logger.error(f"获取主播绑定申请列表失败: {response_data.get('message', '未知错误')}")
+        else:
+            logger.error(f"获取主播绑定申请列表请求失败: HTTP {response.status_code}")
+            # 记录更详细的错误信息
+            try:
+                error_data = response.json()
+                logger.error(f"错误详情: {error_data}")
+            except:
+                logger.error(f"错误响应内容: {response.text}")
+        
+        return False, None, response.json() if response.text else {}
+    
+    @staticmethod
+    def check_bind(client, record_id, status):
+        """
+        审核主播绑定申请
+        :param client: 代理客户端
+        :param record_id: 记录ID
+        :param status: 状态：3:已通过 4：已拒绝
+        :return: (是否成功, 响应对象)
+        """
+        logger.info(f"审核主播绑定申请: 记录ID={record_id}, 状态={status}")
+        
+        # 检查客户端是否已登录
+        if not client.is_logged_in():
+            logger.error("客户端未登录，无法审核主播绑定申请")
+            return False, {"message": "客户端未登录"}
+        
+        # 检查状态是否合法
+        if status not in [3, 4]:
+            logger.error(f"状态值不合法: {status}，必须是3(通过)或4(拒绝)")
+            return False, {"message": "状态值不合法"}
+        
+        # 构建请求数据
+        data = {
+            "id": record_id,
+            "status": status
+        }
+        
+        # 发送请求
+        url = "/agent/admin/actor/bind/check"
+        response = client.post(url, json=data)
+        
+        # 检查响应
+        if response.status_code == 200:
+            response_data = response.json()
+            if response_data.get("code") == 0 and response_data.get("message") == "success":
+                status_text = "通过" if status == 3 else "拒绝"
+                logger.info(f"审核主播绑定申请{status_text}成功: 记录ID={record_id}")
+                return True, response_data
+            else:
+                logger.error(f"审核主播绑定申请失败: {response_data.get('message', '未知错误')}")
+        else:
+            logger.error(f"审核主播绑定申请请求失败: HTTP {response.status_code}")
+            # 记录更详细的错误信息
+            try:
+                error_data = response.json()
+                logger.error(f"错误详情: {error_data}")
+            except:
+                logger.error(f"错误响应内容: {response.text}")
+        
+        return False, response.json() if response.text else {} 

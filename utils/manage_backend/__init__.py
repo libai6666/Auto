@@ -7,7 +7,7 @@
 """
 
 # 导入接口
-from utils.manage_backend.api import AdminAPI
+from utils.manage_backend.api import ManagerAPI
 
 # 导入客户端
-from utils.manage_backend.client import AdminClient 
+from utils.manage_backend.client import ManagerClient 

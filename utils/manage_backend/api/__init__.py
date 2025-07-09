@@ -6,4 +6,4 @@
 包含与管理后台相关的API接口
 """
 
-from utils.manage_backend.api.admin import AdminAPI 
+from utils.manage_backend.api.manager import ManagerAPI 

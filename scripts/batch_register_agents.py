@@ -14,7 +14,7 @@ sys.path.append(project_root)
 
 from utils.client_factory import ClientFactory
 from utils.logger import logger
-from utils.manage_backend.api.admin import AdminAPI
+from utils.manage_backend.api.manager import ManagerAPI
 from utils.agent_backend.api.agent import AgentAPI
 
 
@@ -88,16 +88,16 @@ def main():
     factory = ClientFactory()
     
     # 创建管理后台客户端
-    admin_client = factory.create_admin_client()
+    manager_client = factory.create_manager_client()
     
     # 登录管理后台
-    success, _ = AdminAPI.login(admin_client)
+    success, _ = ManagerAPI.login(manager_client)
     if not success:
         logger.error("登录管理后台失败，无法继续执行")
         return
     
     # 生成邀请码
-    success, _ = AdminAPI.generate_invite_code(admin_client, args.count)
+    success, _ = ManagerAPI.generate_invite_code(manager_client, args.count)
     if not success:
         logger.warning("生成邀请码失败，将尝试使用现有邀请码")
     
@@ -133,14 +133,14 @@ def main():
                 continue
             
             # 获取验证码
-            success, code, _ = AgentAPI.get_code(admin_client, area_code, phone)
+            success, code, _ = AgentAPI.get_code(manager_client, area_code, phone)
             if not success or not code:
                 logger.error(f"获取验证码失败，跳过注册: {area_code}-{phone}")
                 failed_count += 1
                 continue
             
             # 获取未使用的邀请码
-            success, invite_code, _ = AdminAPI.get_unused_invite_code(admin_client)
+            success, invite_code, _ = ManagerAPI.get_unused_invite_code(manager_client)
             if not success or not invite_code:
                 logger.error(f"获取邀请码失败，跳过注册: {area_code}-{phone}")
                 failed_count += 1

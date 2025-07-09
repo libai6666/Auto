@@ -4,7 +4,7 @@
 from utils.logger import logger
 
 
-class AdminAPI:
+class ManagerAPI:
     """
     管理后台API封装
     """
@@ -79,7 +79,7 @@ class AdminAPI:
             if not response.text:
                 logger.info(f"生成邀请码成功: 状态码={response.status_code}")
                 # 重新获取邀请码列表
-                return AdminAPI.get_invite_code_list(client)
+                return ManagerAPI.get_invite_code_list(client)
             else:
                 try:
                     data = response.json()
@@ -144,7 +144,7 @@ class AdminAPI:
         :return: (是否成功, 邀请码, 响应对象)
         """
         # 获取邀请码列表
-        success, data = AdminAPI.get_invite_code_list(client)
+        success, data = ManagerAPI.get_invite_code_list(client)
         
         if success:
             # 查找未使用的邀请码(status=0)
@@ -157,11 +157,11 @@ class AdminAPI:
             
             # 如果没有找到未使用的邀请码，则生成新的
             logger.info("未找到未使用的邀请码，正在生成新的邀请码")
-            success, gen_data = AdminAPI.generate_invite_code(client, 1)
+            success, gen_data = ManagerAPI.generate_invite_code(client, 1)
             
             if success and gen_data:
                 # 重新获取邀请码列表
-                return AdminAPI.get_unused_invite_code(client)
+                return ManagerAPI.get_unused_invite_code(client)
             else:
                 logger.error("生成新邀请码失败")
                 return False, None, data

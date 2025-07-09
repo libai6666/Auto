@@ -5,7 +5,7 @@ from utils.api_client import APIClient
 from utils.logger import logger
 
 
-class AdminClient(APIClient):
+class ManagerClient(APIClient):
     """
     管理后台API客户端，处理管理后台的请求
     """

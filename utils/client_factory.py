@@ -3,7 +3,7 @@
 
 from utils.app.client.user_client import UserClient
 from utils.agent_backend.client.agent_client import AgentClient
-from utils.manage_backend.client.admin_client import AdminClient
+from utils.manage_backend.client.manager_client import ManagerClient
 from utils.logger import logger
 from utils.data_handler import load_config
 import random
@@ -23,7 +23,7 @@ class ClientFactory:
         
         self.clients = {}  # 缓存已创建的客户端
         self.agent_clients = {}  # 缓存已创建的代理客户端
-        self.admin_clients = {}  # 缓存已创建的管理客户端
+        self.manager_clients = {}  # 缓存已创建的管理客户端
     
     def get_client(self, user_id):
         """
@@ -112,23 +112,23 @@ class ClientFactory:
         logger.info(f"创建代理后台客户端: {identifier}")
         return client
     
-    def create_admin_client(self, identifier=None):
+    def create_manager_client(self, identifier=None):
         """
         创建管理后台客户端
         :param identifier: 标识符，用于缓存客户端
-        :return: AdminClient实例
+        :return: ManagerClient实例
         """
         # 生成默认标识符
         if identifier is None:
-            identifier = f"admin_{len(self.admin_clients) + 1}"
+            identifier = f"admin_{len(self.manager_clients) + 1}"
         
         # 检查缓存中是否已有此客户端
-        if identifier in self.admin_clients:
-            return self.admin_clients[identifier]
+        if identifier in self.manager_clients:
+            return self.manager_clients[identifier]
         
         # 创建新客户端
-        client = AdminClient()
-        self.admin_clients[identifier] = client
+        client = ManagerClient()
+        self.manager_clients[identifier] = client
         
         logger.info(f"创建管理后台客户端: {identifier}")
         return client

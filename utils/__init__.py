@@ -8,5 +8,5 @@
 
 # 导入模块
 from utils.app import UserAPI, UserClient
-from utils.manage_backend import AdminAPI, AdminClient
+from utils.manage_backend import ManagerAPI, ManagerClient
 from utils.agent_backend import AgentAPI, AgentClient 

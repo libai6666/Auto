@@ -448,3 +448,60 @@ class UserAPI:
         except Exception as e:
             logger.error(f"保存图片失败: {str(e)}")
             return False 
+
+    @staticmethod
+    def apply_bind_agent(client, agent_id):
+        """
+        主播申请绑定代理
+        :param client: API客户端实例
+        :param agent_id: 代理用户ID
+        :return: (是否成功, 响应对象)
+        """
+        logger.info(f"主播申请绑定代理: 代理ID={agent_id}")
+        
+        # 直接调用API，不检查用户身份
+        response = client.request(
+            method="POST",
+            url="/api/workbench/v1/workbench/anchorBindAgentApply",
+            json={"agentId": agent_id}
+        )
+        
+        if response.status_code != 200:
+            logger.error(f"申请绑定代理失败: HTTP {response.status_code}")
+            return False, response
+        
+        result = response.json()
+        if result.get("errorCode") != 0:
+            logger.error(f"申请绑定代理失败: {result.get('errorMessage')}")
+            return False, response
+        
+        logger.info(f"主播申请绑定代理成功: 代理ID={agent_id}")
+        return True, response
+    
+    @staticmethod
+    def is_anchor(client):
+        """
+        检查用户是否是主播
+        :param client: API客户端实例
+        :return: 是否是主播
+        """
+        if not client.user_info or "userRoles" not in client.user_info:
+            logger.error("用户未登录或用户信息不完整")
+            return False
+        
+        # 检查userRoles数组中是否包含主播角色
+        user_roles = client.user_info.get("userRoles", [])
+        
+        # 根据API响应，角色是用整数表示的
+        # 主播角色可能是2或其他整数，这里需要根据实际情况调整
+        # 1: 普通用户
+        # 2: 可能是主播
+        # 如果userRoles中包含2，则认为是主播
+        is_anchor = 2 in user_roles
+        
+        if is_anchor:
+            logger.info("当前用户是主播")
+        else:
+            logger.info("当前用户不是主播")
+        
+        return is_anchor 

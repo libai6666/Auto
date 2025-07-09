@@ -33,6 +33,7 @@ def parse_args():
     # 代理信息参数
     parser.add_argument("--name-prefix", type=str, default="autoAgent", help="代理名称前缀，会加上手机号后四位")
     parser.add_argument("--country", type=str, choices=["CN", "IN"], default=None, help="国家代码，如果不指定则随机选择")
+    parser.add_argument("--password", type=str, default="duoo2025", help="代理密码，默认为duoo2025")
     
     # 环境参数
     parser.add_argument("--env", choices=["dev", "test", "prod"], default="test", help="执行环境")
@@ -79,6 +80,7 @@ def main():
     logger.info(f"国别码: {args.area_code}")
     logger.info(f"代理名称前缀: {args.name_prefix}")
     logger.info(f"国家: {args.country if args.country else '随机'}")
+    logger.info(f"默认密码: {'*' * len(args.password)}")  # 不直接记录密码
     logger.info(f"执行环境: {args.env}")
     logger.info("=" * 80)
     
@@ -105,6 +107,8 @@ def main():
     # 注册结果统计
     success_count = 0
     failed_count = 0
+    info_set_count = 0
+    password_set_count = 0
     
     # 开始批量注册
     for i, agent_client in enumerate(agent_clients):
@@ -147,10 +151,9 @@ def main():
                 agent_client, 
                 area_code, 
                 phone, 
-                code, 
-                invite_code, 
-                agent_name, 
-                country,
+                code=code, 
+                invite_code=invite_code, 
+              
                 login_type="1"  # 使用短信验证码登录
             )
             
@@ -163,6 +166,28 @@ def main():
                 
                 # 输出代理Token，方便后续使用
                 logger.debug(f"代理Token: {token}")
+                
+                # 检查客户端状态
+                logger.info(f"客户端状态: Token存在={agent_client.token is not None}, Agent ID={agent_client.agent_id}")
+                
+                # 设置代理信息
+                logger.info(f"正在为代理 {agent_id} 设置信息...")
+                info_success, _ = AgentAPI.fill_agent_info(agent_client, agent_id, agent_name, country)
+                if info_success:
+                    logger.info(f"设置代理信息成功: ID={agent_id}, 手机号={area_code}-{phone}, 名称={agent_name}, 国家={country}")
+                    info_set_count += 1
+                else:
+                    logger.warning(f"设置代理信息失败: ID={agent_id}, 手机号={area_code}-{phone}")
+                
+                # 设置密码
+                logger.info(f"正在为代理 {agent_id} 设置密码...")
+                password_success, password_response = AgentAPI.set_password(agent_client, args.password)
+                if password_success:
+                    logger.info(f"设置密码成功: ID={agent_id}, 手机号={area_code}-{phone}")
+                    password_set_count += 1
+                else:
+                    logger.warning(f"设置密码失败: ID={agent_id}, 手机号={area_code}-{phone}")
+                    logger.debug(f"设置密码失败详情: {password_response}")
                 
                 # 防止请求过于频繁，稍作延迟
                 time.sleep(1)
@@ -178,6 +203,8 @@ def main():
     logger.info("=" * 80)
     logger.info(f"批量注册代理完成，时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     logger.info(f"成功注册: {success_count} 个")
+    logger.info(f"成功设置代理信息: {info_set_count} 个")
+    logger.info(f"成功设置密码: {password_set_count} 个")
     logger.info(f"失败注册: {failed_count} 个")
     logger.info("=" * 80)
 

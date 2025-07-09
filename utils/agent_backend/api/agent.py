@@ -179,8 +179,6 @@ class AgentAPI:
         
         # 记录请求参数
         log_data = data.copy()
-        if "password" in log_data:
-            log_data["password"] = "******"  # 日志中隐藏密码
         logger.debug(f"请求参数: {log_data}")
         
         # 客户端会自动添加请求头，包括agentId等信息
@@ -188,20 +186,25 @@ class AgentAPI:
         
         # 检查响应
         if response.status_code == 200:
-            data = response.json()
-            if data.get("code") == 0 and data.get("message") == "success":
+            response_data = response.json()
+            if response_data.get("code") == 0 and response_data.get("message") == "success":
+                # 从嵌套的data字段中获取token和agentId
+                agent_data = response_data.get("data", {})
+                token = agent_data.get("token")
+                agent_id = agent_data.get("agentId")
+                
                 # 设置代理客户端的信息
-                client.set_token(data.get("token"))
+                client.set_token(token)
                 client.set_agent_info(
-                    data.get("agentId"),
-                    agent_name or phone,  # 如果没有提供代理名称，则使用手机号
+                    agent_id,
+                    agent_name or f"{area_code}{phone}",  # 如果没有提供代理名称，则使用完整手机号
                     phone,
                     area_code
                 )
-                logger.info(f"注册/登录代理成功: ID={data.get('agentId')}, 手机号={area_code}-{phone}")
-                return True, data
+                logger.info(f"注册/登录代理成功: ID={agent_id}, 手机号={area_code}-{phone}")
+                return True, agent_data
             else:
-                logger.error(f"注册/登录代理失败: {data.get('message', '未知错误')}")
+                logger.error(f"注册/登录代理失败: {response_data.get('message', '未知错误')}")
         else:
             logger.error(f"注册/登录代理请求失败: HTTP {response.status_code}")
             # 记录更详细的错误信息
@@ -214,44 +217,98 @@ class AgentAPI:
         return False, response.json() if response.text else {}
 
     @staticmethod
-    def set_password(client):
+    def set_password(client, password, confirm_password=None):
         """
         设置密码接口
         :param client: 代理客户端
+        :param password: 密码，必须
+        :param confirm_password: 确认密码，如果不提供则与密码相同
         :return: (是否成功, 响应对象)
         """
         url = "/agent/admin/set/password"
-        logger.info("调用设置密码接口")
+        logger.info("设置代理密码")
         
         # 检查客户端是否已登录
         if not client.is_logged_in():
-            logger.error("客户端未登录，无法调用设置密码接口")
+            logger.error(f"客户端未登录，无法调用设置密码接口。Token状态: {client.token is not None}, Agent ID: {client.agent_id}")
             return False, {"message": "客户端未登录"}
         
+        # 如果未提供确认密码，则使用密码
+        if confirm_password is None:
+            confirm_password = password
+        
+        # 构建请求数据
+        data = {
+            "password": password,
+            "confirmPassword": confirm_password
+        }
+        
+        # 记录请求参数（不记录实际密码值）
+        logger.debug(f"请求参数: 密码长度={len(password)}, 确认密码长度={len(confirm_password)}")
+        
         # 客户端会自动添加请求头，包括agentId等信息
-        response = client.get(url)
+        response = client.post(url, json=data)
         
         # 检查响应
         if response.status_code == 200:
-            data = response.json()
-            if data.get("code") == 0 and data.get("message") == "success":
-                # 提取响应数据
-                response_data = data.get("data", {})
-                agent_id = response_data.get("agentId")
-                is_upload = response_data.get("isUpload")
-                checked = response_data.get("checked")
-                username = response_data.get("username")
-                password_set = response_data.get("passwordSet")
-                coin_merchant = response_data.get("coinMerchant")
-                
-                logger.info(f"设置密码接口调用成功: 代理ID={agent_id}, 用户名={username}")
-                logger.info(f"是否上传国家和名称: {is_upload}, 是否通过审核: {checked}, 是否设置密码: {password_set}, 是否商户: {coin_merchant}")
-                
-                return True, data
+            response_data = response.json()
+            if response_data.get("code") == 0 and response_data.get("message") == "success":
+                logger.info(f"设置密码成功: 代理ID={client.agent_id}")
+                return True, response_data
             else:
-                logger.error(f"设置密码接口调用失败: {data.get('message', '未知错误')}")
+                logger.error(f"设置密码失败: {response_data.get('message', '未知错误')}")
         else:
-            logger.error(f"设置密码接口请求失败: HTTP {response.status_code}")
+            logger.error(f"设置密码请求失败: HTTP {response.status_code}")
+            # 记录更详细的错误信息
+            try:
+                error_data = response.json()
+                logger.error(f"错误详情: {error_data}")
+            except:
+                logger.error(f"错误响应内容: {response.text}")
+        
+        return False, response.json() if response.text else {}
+        
+    @staticmethod
+    def fill_agent_info(client, agent_id, agent_name, country):
+        """
+        设置代理信息
+        :param client: 代理客户端
+        :param agent_id: 代理ID，必须
+        :param agent_name: 代理名称，必须
+        :param country: 国家，必须
+        :return: (是否成功, 响应对象)
+        """
+        url = "/agent/admin/fill/info"
+        logger.info(f"设置代理信息: ID={agent_id}, 名称={agent_name}, 国家={country}")
+        
+        # 检查客户端是否已登录
+        if not client.is_logged_in():
+            logger.error(f"客户端未登录，无法调用设置代理信息接口。Token状态: {client.token is not None}, Agent ID: {client.agent_id}")
+            return False, {"message": "客户端未登录"}
+        
+        # 构建请求数据
+        data = {
+            "agentId": agent_id,
+            "agentName": agent_name,
+            "country": country
+        }
+        
+        # 记录请求参数
+        logger.debug(f"请求参数: {data}")
+        
+        # 客户端会自动添加请求头，包括agentId等信息
+        response = client.post(url, json=data)
+        
+        # 检查响应
+        if response.status_code == 200:
+            response_data = response.json()
+            if response_data.get("code") == 0 and response_data.get("message") == "success":
+                logger.info(f"设置代理信息成功: ID={agent_id}, 名称={agent_name}, 国家={country}")
+                return True, response_data
+            else:
+                logger.error(f"设置代理信息失败: {response_data.get('message', '未知错误')}")
+        else:
+            logger.error(f"设置代理信息请求失败: HTTP {response.status_code}")
             # 记录更详细的错误信息
             try:
                 error_data = response.json()

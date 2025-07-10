@@ -8,7 +8,7 @@ from utils.logger import logger
 
 class AgentAPI:
     """
-    代理后台API封装
+    代理后台公共分类模块API封装
     """
     
     @staticmethod

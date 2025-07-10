@@ -6,7 +6,7 @@ from utils.logger import logger
 
 class ManagerAPI:
     """
-    管理后台API封装
+    管理后台用户模块API封装
     """
     
     @staticmethod

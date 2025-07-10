@@ -16,6 +16,7 @@ from utils.client_factory import ClientFactory
 from utils.logger import logger
 from utils.manage_backend.api.manager import ManagerAPI
 from utils.agent_backend.api.agent import AgentAPI
+from utils.manage_backend.api.agency_business import AgencyBusinessAPI
 
 
 def parse_args():
@@ -58,7 +59,7 @@ def get_random_country():
     随机获取国家代码
     :return: 国家代码
     """
-    countries = ["CN", "IN"]
+    countries = ["CN", "IN","CL","AR","CO","MX","PE","VE","EC","BO","UY","PY","HN","NI","CR","PA","SV","GT","BZ","DO","PR","CU","JM","HT","GD","TT","VC","GY","SR","GF","BR"]
     return random.choice(countries)
 
 
@@ -97,7 +98,7 @@ def main():
         return
     
     # 生成邀请码
-    success, _ = ManagerAPI.generate_invite_code(manager_client, args.count)
+    success, _ = AgencyBusinessAPI.generate_invite_code(manager_client, args.count)
     if not success:
         logger.warning("生成邀请码失败，将尝试使用现有邀请码")
     
@@ -109,6 +110,9 @@ def main():
     failed_count = 0
     info_set_count = 0
     password_set_count = 0
+    
+    # 收集成功注册的代理ID
+    successful_agent_ids = []
     
     # 开始批量注册
     for i, agent_client in enumerate(agent_clients):
@@ -140,7 +144,7 @@ def main():
                 continue
             
             # 获取未使用的邀请码
-            success, invite_code, _ = ManagerAPI.get_unused_invite_code(manager_client)
+            success, invite_code, _ = AgencyBusinessAPI.get_unused_invite_code(manager_client)
             if not success or not invite_code:
                 logger.error(f"获取邀请码失败，跳过注册: {area_code}-{phone}")
                 failed_count += 1
@@ -163,6 +167,10 @@ def main():
                 token = response.get("token")
                 logger.info(f"注册代理成功: ID={agent_id}, 手机号={area_code}-{phone}, 名称={agent_name}")
                 success_count += 1
+                
+                # 记录代理ID用于后续审核
+                if agent_id:
+                    successful_agent_ids.append(agent_id)
                 
                 # 输出代理Token，方便后续使用
                 logger.debug(f"代理Token: {token}")
@@ -199,6 +207,15 @@ def main():
             logger.error(f"注册代理异常: {str(e)}")
             failed_count += 1
     
+    # 批量审核代理账号
+    if successful_agent_ids:
+        logger.info(f"开始批量审核代理账号，共 {len(successful_agent_ids)} 个")
+        all_success, success_count, total_count, _ = AgencyBusinessAPI.check_agent_account(manager_client, successful_agent_ids)
+        if all_success:
+            logger.info(f"批量审核代理账号成功: {success_count}/{total_count} 个")
+        else:
+            logger.warning(f"部分代理账号审核失败: 成功 {success_count}/{total_count} 个")
+    
     # 记录执行结果
     logger.info("=" * 80)
     logger.info(f"批量注册代理完成，时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -206,6 +223,7 @@ def main():
     logger.info(f"成功设置代理信息: {info_set_count} 个")
     logger.info(f"成功设置密码: {password_set_count} 个")
     logger.info(f"失败注册: {failed_count} 个")
+    logger.info(f"成功审核代理账号: {success_count if 'success_count' in locals() else 0} 个")
     logger.info("=" * 80)
 
 

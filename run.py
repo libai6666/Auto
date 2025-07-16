@@ -235,9 +235,9 @@ def main():
             # 启动报告服务器并添加报告
             if args.dingtalk:
                 try:
-                    from utils.notification import start_report_server, add_report
+                    from utils.notification import add_report
                     
-                    logger.info("启动报告服务器...")
+                    logger.info("将报告上传到报告服务...")
                     
                     # 创建报告ID（使用时间戳）
                     report_id = f"report_{timestamp}"
@@ -250,7 +250,7 @@ def main():
                         "passed": 0,
                         "failed": 0,
                         "skipped": 0,
-                        "error": 0
+                        "executed": 0  # 添加一个字段，记录实际执行的用例数
                     }
                     
                     # 如果使用了Allure报告，尝试从Allure结果目录中解析测试结果
@@ -271,30 +271,40 @@ def main():
                                     
                                     if data['status'].lower() == 'passed':
                                         report_metadata["passed"] += 1
-                                    elif data['status'].lower() == 'failed':
+                                    elif data['status'].lower() == 'failed' or data['status'].lower() == 'broken':
                                         report_metadata["failed"] += 1
                                     elif data['status'].lower() == 'skipped':
                                         report_metadata["skipped"] += 1
-                                    elif data['status'].lower() == 'broken':
-                                        report_metadata["error"] += 1
                         except Exception as e:
                             logger.error(f"解析测试结果文件失败: {str(e)}")
                     
                     # 添加报告持续时间
                     report_metadata["duration"] = duration
                     
-                    # 启动报告服务器并添加报告
-                    server_url = start_report_server("reports/server", 8080)
-                    if server_url:
+                    # 计算实际执行的用例数（总数减去跳过的）
+                    report_metadata["executed"] = report_metadata["total"] - report_metadata["skipped"]
+                    
+                    # 假设报告服务已在Docker中运行，直接上传报告
+                    try:
+                        # 直接使用add_report函数，不需要启动服务器
+                        from utils.notification import add_report
+                        
                         # 添加报告并获取URL
+                        # 从配置中获取报告服务器URL
+                        config = load_config()
+                        report_server_url = config.get('report_server', {}).get('url', 'http://localhost:7987')
+                        
                         report_url = add_report(report_id, abs_report_dir, report_metadata)
                         if report_url:
-                            logger.info(f"报告已添加到服务器，可通过以下URL访问: {report_url}")
+                            logger.info(f"报告已上传到服务器，可通过以下URL访问: {report_url}")
                             allure_report_url = report_url
                         else:
-                            logger.warning("添加报告到服务器失败，将使用本地文件路径")
-                    else:
-                        logger.warning("启动报告服务器失败，将使用本地文件路径")
+                            logger.warning("上传报告到服务器失败，将使用本地文件路径")
+                            # 提供本地文件路径和Docker服务器URL
+                            logger.info(f"您可以手动访问: {report_server_url}/{report_id}")
+                    except Exception as e:
+                        logger.error(f"上传报告到服务器失败: {str(e)}")
+                        logger.warning("将使用本地文件路径")
                 
                 except Exception as e:
                     logger.error(f"处理报告服务器失败: {str(e)}")
@@ -339,7 +349,7 @@ def main():
             "passed": 0,
             "failed": 0,
             "skipped": 0,
-            "error": 0,
+            "executed": 0,  # 添加实际执行的用例数
             "duration": duration,
             "env": args.env
         }
@@ -363,30 +373,31 @@ def main():
                             
                             if data['status'].lower() == 'passed':
                                 test_summary["passed"] += 1
-                            elif data['status'].lower() == 'failed':
+                            elif data['status'].lower() == 'failed' or data['status'].lower() == 'broken':
                                 test_summary["failed"] += 1
                             elif data['status'].lower() == 'skipped':
                                 test_summary["skipped"] += 1
-                            elif data['status'].lower() == 'broken':
-                                test_summary["error"] += 1
                 except Exception as e:
                     logger.error(f"解析测试结果文件失败: {str(e)}")
         
+        # 计算实际执行的用例数（总数减去跳过的）
+        test_summary["executed"] = test_summary["total"] - test_summary["skipped"]
+            
         # 如果有报告URL，添加到测试摘要中
         if allure_report_url:
             test_summary["report_url"] = allure_report_url
         
         # 发送测试报告到钉钉群
-        # if args.dingtalk:
-        #     try:
-        #         from utils.notification.dingtalk import get_default_dingtalk_sender
+        if args.dingtalk:
+            try:
+                from utils.notification.dingtalk import get_default_dingtalk_sender
                 
-        #         logger.info("发送测试报告到钉钉群...")
-        #         sender = get_default_dingtalk_sender()
-        #         sender.send_test_report(test_summary)
-        #         logger.info("测试报告已发送到钉钉群")
-        #     except Exception as e:
-        #         logger.error(f"发送测试报告到钉钉群失败: {str(e)}")
+                logger.info("发送测试报告到钉钉群...")
+                sender = get_default_dingtalk_sender()
+                sender.send_test_report(test_summary)
+                logger.info("测试报告已发送到钉钉群")
+            except Exception as e:
+                logger.error(f"发送测试报告到钉钉群失败: {str(e)}")
     
     except Exception as e:
         logger.error(f"处理测试结果失败: {str(e)}")

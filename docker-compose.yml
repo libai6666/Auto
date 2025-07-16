@@ -1,0 +1,22 @@
+version: '3'
+
+services:
+  report-server:
+    build: .
+    container_name: test-report-server
+    ports:
+      - "7987:7987"
+    volumes:
+      - ./reports:/app/reports
+      - ./logs:/app/logs
+    restart: always
+    environment:
+      - DOCKER_ENV=true
+      # 如果您有固定的公网IP或域名，可以在这里设置
+      - REPORT_SERVER_HOST=192.168.0.110
+    networks:
+      - report-network
+
+networks:
+  report-network:
+    driver: bridge 

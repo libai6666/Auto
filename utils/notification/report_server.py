@@ -200,7 +200,7 @@ class ReportServer:
     """
     报告服务器，用于长期托管Allure报告
     """
-    def __init__(self, reports_dir="reports", port=8080):
+    def __init__(self, reports_dir="reports", port=7987):
         """
         初始化报告服务器
         :param reports_dir: 报告根目录
@@ -501,12 +501,36 @@ class ReportServer:
             # 获取实际端口
             self.port = self.server.server_port
             
-            # 获取本机IP地址
-            hostname = socket.gethostname()
-            ip_address = socket.gethostbyname(hostname)
+            # Docker 环境中获取IP地址
+            ip_address = None
+            
+            # 优先尝试获取环境变量中的主机名
+            host_env = os.environ.get("REPORT_SERVER_HOST")
+            if host_env:
+                ip_address = host_env
+                logger.info(f"从环境变量获取主机名: {ip_address}")
+            else:
+                try:
+                    # 尝试获取真实的外部IP地址
+                    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    s.connect(("8.8.8.8", 80))
+                    ip_address = s.getsockname()[0]
+                    s.close()
+                except Exception as e:
+                    logger.warning(f"获取真实IP地址失败: {str(e)}")
+                    # 在Docker环境中使用0.0.0.0
+                    ip_address = socket.gethostbyname(socket.gethostname())
             
             # 构建URL
             self.url = f"http://{ip_address}:{self.port}"
+            
+            # 输出提示信息，方便用户了解多个访问地址
+            logger.info(f"报告可通过以下URL访问：")
+            logger.info(f"- 本机访问: http://localhost:{self.port}")
+            logger.info(f"- 服务器访问: http://{ip_address}:{self.port}")
+            # 特别提示Docker环境
+            if os.environ.get("DOCKER_ENV"):
+                logger.info(f"- 注意: 在Docker环境中运行，请使用宿主机IP访问")
             
             # 更新报告URL
             for report_id, report in self.reports_index.items():
@@ -554,7 +578,7 @@ class ReportServer:
 _report_server = None
 
 
-def get_report_server(reports_dir="reports", port=8080):
+def get_report_server(reports_dir="reports", port=7987):
     """
     获取报告服务器实例
     :param reports_dir: 报告根目录
@@ -569,7 +593,7 @@ def get_report_server(reports_dir="reports", port=8080):
     return _report_server
 
 
-def start_report_server(reports_dir="reports/server", port=8080):
+def start_report_server(reports_dir="reports", port=7987):
     """
     启动报告服务器
     :param reports_dir: 报告根目录
@@ -595,11 +619,71 @@ def add_report(report_id, report_dir, metadata=None):
     :param metadata: 报告元数据
     :return: 报告URL
     """
-    server = get_report_server()
-    if not server.url:
-        server.start()
+    # 从配置中获取报告服务器URL
+    from utils.logger import logger
+    import yaml
+    import os
+    import shutil
     
-    return server.add_report(report_id, report_dir, metadata)
+    config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "config", "config.yaml")
+    report_server_url = None
+    
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = yaml.safe_load(f)
+            report_server = config.get('report_server', {})
+            report_server_url = report_server.get('url')
+            is_enabled = report_server.get('enabled', True)
+            
+            if not is_enabled:
+                logger.info("报告服务器功能已禁用")
+                return None
+            
+            if not report_server_url:
+                # 如果配置中没有URL，尝试使用本地服务器
+                server = get_report_server()
+                if not server.url:
+                    server.start()
+                return server.add_report(report_id, report_dir, metadata)
+    except Exception as e:
+        logger.error(f"读取配置失败: {str(e)}")
+        # 如果读取配置失败，尝试使用本地服务器
+        server = get_report_server()
+        if not server.url:
+            server.start()
+        return server.add_report(report_id, report_dir, metadata)
+    
+    # 解析服务器地址和端口
+    import re
+    match = re.match(r"http://(.*):(\d+)", report_server_url)
+    if not match:
+        logger.error(f"无效的服务器URL格式: {report_server_url}")
+        return None
+    
+    server_host, server_port = match.groups()
+    server_port = int(server_port)
+    
+    # 构建目标路径
+    target_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "reports", report_id)
+    
+    # 复制报告文件
+    try:
+        # 如果目标目录已存在，先删除
+        if os.path.exists(target_dir):
+            shutil.rmtree(target_dir)
+        
+        # 复制目录
+        shutil.copytree(report_dir, target_dir)
+        logger.info(f"已复制报告文件到 {target_dir}")
+    except Exception as e:
+        logger.error(f"复制报告文件失败: {str(e)}")
+        return None
+    
+    # 构建报告URL
+    report_url = f"{report_server_url}/{report_id}"
+    logger.info(f"报告已准备就绪，可通过以下URL访问: {report_url}")
+    
+    return report_url
 
 
 def stop_report_server():

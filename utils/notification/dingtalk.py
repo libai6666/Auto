@@ -144,10 +144,16 @@ class DingTalkSender:
             - env: 测试环境
         :return: 请求响应
         """
-        # 计算通过率
+        # 计算通过率（不包含跳过的用例）
         total = report_info.get('total', 0)
+        skipped = report_info.get('skipped', 0)
         passed = report_info.get('passed', 0)
-        pass_rate = f"{(passed / total * 100):.2f}%" if total > 0 else "0.00%"
+        
+        # 实际执行的用例数 = 总用例数 - 跳过的用例数
+        executed = total - skipped
+        
+        # 计算通过率（只考虑实际执行的用例）
+        pass_rate = f"{(passed / executed * 100):.2f}%" if executed > 0 else "100.00%"
         
         # 格式化持续时间
         duration = report_info.get('duration', 0)
@@ -159,7 +165,7 @@ class DingTalkSender:
         # 构建Markdown消息
         title = f"自动化测试报告 - {report_info.get('env', '未知环境')}"
         
-        text = f"### 自动化测试报告摘要 \n\n"
+        text = f"### Duoo接口自动化测试报告摘要 \n\n"
         text += f"**测试环境**: {report_info.get('env', '未知环境')} \n\n"
         text += f"**执行时间**: {now} \n\n"
         text += f"**测试结果**: \n\n"
@@ -176,11 +182,22 @@ class DingTalkSender:
             text += f"[查看详细报告]({report_info['report_url']}) \n\n"
         
         # 根据通过率添加不同的结论
-        if passed == total:
+        total = report_info.get('total', 0)
+        skipped = report_info.get('skipped', 0)
+        passed = report_info.get('passed', 0)
+        executed = total - skipped  # 实际执行的用例数
+        
+        if executed == 0:
+            # 如果没有实际执行的用例（都被跳过了）
+            text += "⚠️ **所有测试用例均被跳过!** "
+        elif passed == executed:
+            # 所有执行的测试都通过
             text += "✅ **测试全部通过!** "
-        elif passed / total >= 0.9:
+        elif passed / executed >= 0.9:
+            # 90%以上的测试通过
             text += "⚠️ **大部分测试通过，请检查失败项** "
         else:
+            # 通过率低于90%
             text += "❌ **测试存在较多失败，请及时处理!** "
         
         # 发送markdown消息

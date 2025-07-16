@@ -22,9 +22,9 @@ def parse_args():
     parser = argparse.ArgumentParser(description="测试报告服务器")
     
     # 服务器参数
-    parser.add_argument("--dir", "-d", default="reports/server",
+    parser.add_argument("--dir", "-d", default="reports",
                         help="报告根目录")
-    parser.add_argument("--port", "-p", type=int, default=8080,
+    parser.add_argument("--port", "-p", type=int, default=7987,
                         help="服务器端口")
     
     return parser.parse_args()

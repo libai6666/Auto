@@ -19,3 +19,19 @@ user4:
   phoneNumber: "18211761185"
   phoneCode: "86"
   description: "用户+代理(uid:10035)"
+
+user5:
+  phoneNumber: "17442"
+  phoneCode: "43"
+  description: "主播+代理(uid:10007)"
+
+user6:
+  phoneNumber: "15538337705"
+  phoneCode: "86"
+  description: "用户"
+
+
+
+
+
+

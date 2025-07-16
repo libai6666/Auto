@@ -9,6 +9,7 @@ from utils.logger import logger
 import time
 import os
 from utils.data_handler import load_config
+import allure  # 添加allure导入
 
 class APIClient:
     """
@@ -75,7 +76,9 @@ class APIClient:
         
         # 处理URL
         if not url.startswith(('http://', 'https://')):
-            url = f"{self.base_url}{url}"
+            complete_url = f"{self.base_url}{url}"
+        else:
+            complete_url = url
         
         # 请求开始时间
         start_time = time.time()
@@ -83,7 +86,7 @@ class APIClient:
         # 记录请求信息
         log_msg = f"\n==================== REQUEST ====================\n"
         log_msg += f"Method: {method}\n"
-        log_msg += f"URL: {url}\n"
+        log_msg += f"URL: {complete_url}\n"
         
         # 记录请求头
         if headers:
@@ -112,11 +115,19 @@ class APIClient:
         
         logger.info(log_msg)
         
+        # 添加到Allure报告
+        with allure.step(f"API请求: {method} {url}"):
+            allure.attach(
+                log_msg,
+                name="请求详情",
+                attachment_type=allure.attachment_type.TEXT
+            )
+            
         # 发送请求
         try:
             response = self.session.request(
                 method=method,
-                url=url,
+                url=complete_url,
                 params=params,
                 data=data,
                 json=json,
@@ -149,10 +160,25 @@ class APIClient:
             
             logger.info(log_msg)
             
+            # 添加到Allure报告
+            with allure.step(f"API响应: HTTP {response.status_code}"):
+                allure.attach(
+                    log_msg,
+                    name="响应详情",
+                    attachment_type=allure.attachment_type.TEXT
+                )
+            
             return response
         
         except Exception as e:
             logger.error(f"请求异常: {str(e)}")
+            # 添加到Allure报告
+            with allure.step("API请求异常"):
+                allure.attach(
+                    str(e),
+                    name="异常信息",
+                    attachment_type=allure.attachment_type.TEXT
+                )
             raise
     
     def get(self, url, params=None, **kwargs):

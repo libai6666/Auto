@@ -120,6 +120,9 @@ def parse_args():
     # 调试参数
     parser.add_argument("--debug", action="store_true", help="是否开启调试模式")
     
+    # 钉钉通知参数
+    parser.add_argument("--dingtalk", action="store_true", help="是否发送测试报告到钉钉群")
+    
     return parser.parse_args()
 
 
@@ -187,11 +190,18 @@ def main():
     # 记录测试命令
     logger.info(f"执行的Pytest参数: {' '.join(pytest_args)}")
     
+    # 记录测试开始时间
+    start_time = time.time()
+    
     # 执行测试
     logger.info("开始执行测试...")
     exit_code = pytest.main(pytest_args)
     
+    # 计算测试持续时间
+    duration = int(time.time() - start_time)
+    
     # 生成Allure报告（如果需要）
+    allure_report_url = None
     if args.allure:
         logger.info("生成Allure报告...")
         allure_report_dir = f"reports/allure_report_{timestamp}"
@@ -219,7 +229,77 @@ def main():
                            check=True)
             logger.info(f"Allure静态报告已生成: {abs_report_dir}")
             
-            # 打开报告
+            # 设置默认报告URL（用于钉钉通知）
+            allure_report_url = f"file:///{abs_report_dir}/index.html"
+            
+            # 启动报告服务器并添加报告
+            if args.dingtalk:
+                try:
+                    from utils.notification import start_report_server, add_report
+                    
+                    logger.info("启动报告服务器...")
+                    
+                    # 创建报告ID（使用时间戳）
+                    report_id = f"report_{timestamp}"
+                    
+                    # 创建报告元数据
+                    report_metadata = {
+                        "env": args.env,
+                        "timestamp": timestamp,
+                        "total": 0,
+                        "passed": 0,
+                        "failed": 0,
+                        "skipped": 0,
+                        "error": 0
+                    }
+                    
+                    # 如果使用了Allure报告，尝试从Allure结果目录中解析测试结果
+                    import json
+                    import glob
+                    
+                    # 查找所有测试结果JSON文件
+                    result_files = glob.glob(f"{allure_results_dir}/*.json")
+                    
+                    for file_path in result_files:
+                        try:
+                            with open(file_path, 'r', encoding='utf-8') as f:
+                                data = json.load(f)
+                                
+                                # 只处理测试结果文件
+                                if 'status' in data:
+                                    report_metadata["total"] += 1
+                                    
+                                    if data['status'].lower() == 'passed':
+                                        report_metadata["passed"] += 1
+                                    elif data['status'].lower() == 'failed':
+                                        report_metadata["failed"] += 1
+                                    elif data['status'].lower() == 'skipped':
+                                        report_metadata["skipped"] += 1
+                                    elif data['status'].lower() == 'broken':
+                                        report_metadata["error"] += 1
+                        except Exception as e:
+                            logger.error(f"解析测试结果文件失败: {str(e)}")
+                    
+                    # 添加报告持续时间
+                    report_metadata["duration"] = duration
+                    
+                    # 启动报告服务器并添加报告
+                    server_url = start_report_server("reports/server", 8080)
+                    if server_url:
+                        # 添加报告并获取URL
+                        report_url = add_report(report_id, abs_report_dir, report_metadata)
+                        if report_url:
+                            logger.info(f"报告已添加到服务器，可通过以下URL访问: {report_url}")
+                            allure_report_url = report_url
+                        else:
+                            logger.warning("添加报告到服务器失败，将使用本地文件路径")
+                    else:
+                        logger.warning("启动报告服务器失败，将使用本地文件路径")
+                
+                except Exception as e:
+                    logger.error(f"处理报告服务器失败: {str(e)}")
+            
+            # 如果需要在浏览器中打开报告
             if args.open:
                 logger.info("在浏览器中打开Allure报告...")
                 
@@ -227,53 +307,94 @@ def main():
                     # 使用Allure的完整路径来启动服务
                     logger.info(f"执行命令: {allure_bin} serve {abs_results_dir}")
                     
-                    # 使用无窗口方式启动Allure服务
+                    # 创建进程配置
+                    startupinfo = None
                     if sys.platform.startswith('win'):
-                        # 创建无窗口进程的配置
                         startupinfo = subprocess.STARTUPINFO()
                         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
                         startupinfo.wShowWindow = subprocess.SW_HIDE
-                        
-                        # 直接运行allure serve命令，但不显示窗口
-                        logger.info("以隐藏窗口方式启动Allure服务")
-                        subprocess.Popen([allure_bin, "serve", abs_results_dir], 
-                                        startupinfo=startupinfo,
-                                        stdout=subprocess.PIPE,
-                                        stderr=subprocess.PIPE,
-                                        shell=False)
-                        logger.info("Allure服务已在后台启动，稍后将在浏览器中打开")
-                        # 等待几秒钟，让服务有时间启动
-                        time.sleep(2)
-                        logger.info("报告应该已在浏览器中打开，如果没有自动打开，请访问 http://localhost:端口号")
-                    else:
-                        # 在Linux/Mac下使用不同的命令
-                        subprocess.Popen([allure_bin, "serve", abs_results_dir], 
-                                         stdout=subprocess.PIPE, 
-                                         stderr=subprocess.PIPE, 
-                                         shell=False)
-                        logger.info("Allure服务已启动")
+                    
+                    # 运行allure serve命令
+                    process = subprocess.Popen(
+                        [allure_bin, "serve", abs_results_dir],
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        startupinfo=startupinfo
+                    )
+                    
+                    logger.info("Allure服务已在后台启动，稍后将在浏览器中打开")
+                    
                 except Exception as e:
-                    logger.error(f"启动Allure服务出错: {str(e)}")
-                    logger.info(f"您可以手动执行以下命令查看报告: {allure_bin} serve {abs_results_dir}")
-        except subprocess.CalledProcessError as e:
-            logger.error(f"生成Allure报告失败: {str(e)}")
-            logger.error(f"请确保已安装Allure命令行工具并设置正确的路径: {allure_bin}")
+                    logger.error(f"启动Allure服务失败: {str(e)}")
+                    logger.info(f"请手动运行以下命令查看报告: {allure_bin} serve {abs_results_dir}")
+        
         except Exception as e:
-            logger.error(f"处理Allure报告时出错: {str(e)}")
-            logger.info(f"您可以手动执行以下命令查看报告: {allure_bin} serve {abs_results_dir}")
+            logger.error(f"生成Allure报告失败: {str(e)}")
     
-    # 打开HTML报告（如果需要）
-    elif args.report and args.open:
-        report_path = f"{report_dir}/report.html"
-        if os.path.exists(report_path):
-            logger.info("在浏览器中打开HTML报告...")
-            webbrowser.open_new_tab(f"file://{os.path.abspath(report_path)}")
+    # 收集测试结果统计信息
+    try:
+        # 从pytest的终端输出中解析测试结果
+        test_summary = {
+            "total": 0,
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "error": 0,
+            "duration": duration,
+            "env": args.env
+        }
+        
+        # 如果使用了Allure报告，尝试从Allure结果目录中解析测试结果
+        if args.allure:
+            import json
+            import glob
+            
+            # 查找所有测试结果JSON文件
+            result_files = glob.glob(f"{allure_results_dir}/*.json")
+            
+            for file_path in result_files:
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                        
+                        # 只处理测试结果文件
+                        if 'status' in data:
+                            test_summary["total"] += 1
+                            
+                            if data['status'].lower() == 'passed':
+                                test_summary["passed"] += 1
+                            elif data['status'].lower() == 'failed':
+                                test_summary["failed"] += 1
+                            elif data['status'].lower() == 'skipped':
+                                test_summary["skipped"] += 1
+                            elif data['status'].lower() == 'broken':
+                                test_summary["error"] += 1
+                except Exception as e:
+                    logger.error(f"解析测试结果文件失败: {str(e)}")
+        
+        # 如果有报告URL，添加到测试摘要中
+        if allure_report_url:
+            test_summary["report_url"] = allure_report_url
+        
+        # 发送测试报告到钉钉群
+        # if args.dingtalk:
+        #     try:
+        #         from utils.notification.dingtalk import get_default_dingtalk_sender
+                
+        #         logger.info("发送测试报告到钉钉群...")
+        #         sender = get_default_dingtalk_sender()
+        #         sender.send_test_report(test_summary)
+        #         logger.info("测试报告已发送到钉钉群")
+        #     except Exception as e:
+        #         logger.error(f"发送测试报告到钉钉群失败: {str(e)}")
     
-    # 输出测试结果
+    except Exception as e:
+        logger.error(f"处理测试结果失败: {str(e)}")
+    
+    # 记录测试结束
     logger.info("=" * 80)
-    logger.info(f"测试执行完成，退出码: {exit_code}")
-    logger.info(f"结束时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    logger.info("=" * 80)
+    logger.info(f"测试执行完成，退出代码: {exit_code}")
+    logger.info(f"总耗时: {duration // 60}分{duration % 60}秒")
     
     return exit_code
 

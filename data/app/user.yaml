@@ -1,17 +1,92 @@
 avatar_test_data:
   # 有效的头像地址
   valid_avatars:
-    - "2023/03/24/138e73bbec0818915d77025becbd32bf.jpg"
-    - "2023/05/09/882b307f642db22bb346b8964eaeb89d.jpg"
-    - "2023/03/28/12e71b54221225c57e658a6c6c26a14b.jpg"
-    - "2023/03/29/27aeb8da3471ceb66e75c5555bededa5.jpg"
-    - "2023/03/30/3d919702a4e5a94a45fff048d4349ce6.jpg"
-    - "2023/03/30/3984d471df31febe05339c64ff7a8f35.jpg"
-    - "2023/05/10/53c66fbc66e6e0699f3a2596876b4fdd.jpg"
-    - "2023/03/30/245ab02daee8495f420cb43dc392e2d3.jpg"
-    - "2023/03/30/e3b972353cc595a63cd9c2fe1d4d6013.jpg"
+    - "/2023/03/24/138e73bbec0818915d77025becbd32bf.jpg"
+    - "/2023/05/09/882b307f642db22bb346b8964eaeb89d.jpg"
+    - "/2023/03/28/12e71b54221225c57e658a6c6c26a14b.jpg"
+    - "/2023/03/29/27aeb8da3471ceb66e75c5555bededa5.jpg"
+    - "/2023/03/30/3d919702a4e5a94a45fff048d4349ce6.jpg"
+    - "/2023/03/30/3984d471df31febe05339c64ff7a8f35.jpg"
+    - "/2023/05/10/53c66fbc66e6e0699f3a2596876b4fdd.jpg"
+    - "/2023/03/30/245ab02daee8495f420cb43dc392e2d3.jpg"
+    - "/2023/03/30/e3b972353cc595a63cd9c2fe1d4d6013.jpg"
   
   # 无效的头像数据
   invalid_avatars:
     - ""  # 空字符串
     - null  # 空值
+
+profile_test_data:
+  # 有效的国家代码
+  countries:
+    - "CN"  # 中国
+    - "IN"  # 印度
+    - "CL"  # 智利
+    - "AR"  # 阿根廷
+    - "CO"  # 哥伦比亚
+    - "MX"  # 墨西哥
+    - "PE"  # 秘鲁
+    - "VE"  # 委内瑞拉
+    - "EC"  # 厄瓜多尔
+    - "BO"  # 玻利维亚
+    - "UY"  # 乌拉圭
+    - "PY"  # 巴拉圭
+    - "HN"  # 洪都拉斯
+    - "NI"  # 尼加拉瓜
+    - "CR"  # 哥斯达黎加
+    - "PA"  # 巴拿马
+    - "SV"  # 萨尔瓦多
+    - "GT"  # 危地马拉
+    - "BZ"  # 伯利兹
+    - "DO"  # 多米尼加
+    - "PR"  # 波多黎各
+    - "CU"  # 古巴
+    - "JM"  # 牙买加
+    - "HT"  # 海地
+    - "GD"  # 格林纳达
+    - "TT"  # 特立尼达和多巴哥
+    - "VC"  # 圣文森特和格林纳丁斯
+    - "GY"  # 圭亚那
+    - "SR"  # 苏里南
+    - "GF"  # 法属圭亚那
+    - "BR"  # 巴西
+  
+  # 有效的生日格式
+  birthdays:
+    - "1990-01-01"
+    - "1995-06-15"
+    - "2000-12-31"
+    - "1985-03-22"
+    - "1998-11-07"
+  
+  # 有效的语言
+  languages:
+    - "Afrikaans"
+    - "Akan"
+    - "Albanian"
+    - "Amharic"
+    - "Arabic"
+    - "Armenian"
+    - "Assamese"
+    - "Aymara"
+    - "Azerbaijani"
+    - "Bambara"
+    - "Basque"
+    - "Belarusian"
+    - "Bengali"
+    - "Bhojpuri"
+    - "Bosnian"
+    - "Bulgarian"
+    - "Catalan"
+    - "Cebuano"
+    - "Chichewa"
+    - "Chinese(Simplified)"
+    - "English"
+  
+  # 有效的视频地址
+  video_urls:
+    - "/2025/07/14/f4372eaf2618010d046e51907ebc599c.mp4"
+    - "/2025/07/13/8c94162b6b3de2a44a7f24ecbb16d572.mp4"
+    - "/2025/07/13/d69858415335b91a610fb7d68fb475ed.mp4"
+    - "/2025/07/12/72b30d27075272ed3287bdef6a5981ed.mp4"
+    - "/2025/07/07/1bf84ba7970726aa183af69042a66f3b.mp4"

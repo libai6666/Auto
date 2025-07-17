@@ -191,13 +191,15 @@ class UserAPI:
         return True, response
     
     @staticmethod
-    def modify_profile(client, gender=None, birthday=None, country=None):
+    def modify_profile(client, gender=None, birthday=None, country=None, lang=None, videoUrl=None):
         """
         完善用户资料
         :param client: API客户端实例
         :param gender: 性别 1：男 2：女
         :param birthday: 生日，格式: YYYY-MM-DD
         :param country: 国家
+        :param lang: 语言
+        :param videoUrl: 白名单主播视频地址
         :return: (是否成功, 响应对象)
         """
         # 构建请求数据
@@ -208,6 +210,10 @@ class UserAPI:
             data["birthday"] = birthday
         if country is not None:
             data["country"] = country
+        if lang is not None:
+            data["lang"] = lang
+        if videoUrl is not None:
+            data["videoUrl"] = videoUrl
         
         # 如果没有要修改的数据，返回失败
         if not data:
@@ -520,4 +526,50 @@ class UserAPI:
             client.user_info["avatar"] = avatar
         
         logger.info(f"修改头像成功: {avatar}")
+        return True, response
+    
+    @staticmethod
+    def get_user_info(client, uid=None):
+        """
+        获取用户资料
+        :param client: API客户端实例
+        :param uid: 用户ID，不传则获取自己的资料
+        :return: (是否成功, 响应对象)
+        """
+        # 构建请求参数
+        params = {}
+        if uid is not None:
+            params["uid"] = uid
+            params["targetId"] = uid  # 同时设置targetId为相同的uid
+        else:
+            # 如果没有指定uid，则使用当前登录用户的uid
+            if client.user_info and "uid" in client.user_info:
+                params["uid"] = client.user_info["uid"]
+                params["targetId"] = client.user_info["uid"]  # 同时设置targetId
+            else:
+                logger.error("获取用户资料失败: 未指定用户ID且未登录")
+                return False, None
+
+        response = client.request(
+            method="GET",
+            url="/api/user/v1/user/info",
+            params=params
+        )
+        
+        if response.status_code != 200:
+            logger.error(f"获取用户资料失败: {response.text}")
+            return False, response
+        
+        result = response.json()
+        if result.get("errorCode") != 0:
+            logger.error(f"获取用户资料失败: {result.get('errorMessage')}")
+            return False, response
+        
+        # 更新本地用户信息
+        if result.get("data"):
+            # 只有当查询的是自己的信息时，才更新本地用户信息
+            if str(params.get("uid")) == str(client.user_info.get("uid", "")):
+                client.user_info = result.get("data")
+            logger.info(f"成功获取用户资料: {result['data'].get('nick')} (ID: {result['data'].get('uid')})")
+        
         return True, response 

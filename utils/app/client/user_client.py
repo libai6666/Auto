@@ -99,15 +99,17 @@ class UserClient(APIClient):
         """
         return UserAPI.modify_nick(self, new_nick)
     
-    def modify_profile(self, gender=None, birthday=None, country=None):
+    def modify_profile(self, gender=None, birthday=None, country=None, lang=None, videoUrl=None):
         """
         完善用户资料
         :param gender: 性别 1：男 2：女
         :param birthday: 生日，格式: YYYY-MM-DD
         :param country: 国家
+        :param lang: 语言
+        :param videoUrl: 白名单主播视频地址
         :return: (是否成功, 响应对象)
         """
-        return UserAPI.modify_profile(self, gender, birthday, country)
+        return UserAPI.modify_profile(self, gender, birthday, country, lang, videoUrl)
     
     def modify_avatar(self, avatar):
         """
@@ -116,6 +118,14 @@ class UserClient(APIClient):
         :return: (是否成功, 响应对象)
         """
         return UserAPI.modify_avatar(self, avatar)
+    
+    def get_user_info(self, uid=None):
+        """
+        获取用户资料
+        :param uid: 用户ID，不传则获取自己的资料
+        :return: (是否成功, 响应对象)
+        """
+        return UserAPI.get_user_info(self, uid)
     
     def apply_for_anchor(self, photo_path=None):
         """

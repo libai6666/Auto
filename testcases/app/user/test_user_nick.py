@@ -8,7 +8,7 @@ import threading
 import random
 import string
 from utils.logger import logger
-
+import json
 # 生成随机字母字符串的辅助函数
 def random_string(length=8):
     """生成随机字母字符串"""
@@ -42,6 +42,16 @@ class TestUserNick:
         result = response.json()
         assert result["errorCode"] == 0, f"响应错误码不为0: {result['errorMessage']}"
         
+        # 调用获取用户信息接口验证昵称是否修改成功
+        info_success, info_response = client.get_user_info()
+        assert info_success, "获取用户信息失败"
+        
+        info_result = info_response.json()
+        assert info_result["errorCode"] == 0, "获取用户信息响应错误码不为0"
+        assert info_result["data"]["nick"] == new_nick, f"昵称修改未生效，期望: {new_nick}, 实际: {info_result['data']['nick']}"
+        
+        logger.info(f"昵称修改验证成功，当前昵称: {info_result['data']['nick']}")
+        
         # 记录请求和响应
         allure.attach(
             f"修改昵称为: {new_nick}",
@@ -53,10 +63,18 @@ class TestUserNick:
             name="响应数据",
             attachment_type=allure.attachment_type.TEXT
         )
+        
+        # 将用户信息响应以格式化的JSON形式添加到报告中
+        formatted_info = json.dumps(info_result, indent=2, ensure_ascii=False)
+        allure.attach(
+            formatted_info,
+            name="用户信息响应(格式化)",
+            attachment_type=allure.attachment_type.JSON
+        )
     
     @allure.story("昵称修改")
     @allure.title("测试单个用户修改昵称失败-纯数字")
-    @pytest.mark.medium
+    @pytest.mark.negative
     def test_modify_nick_failure_numbers(self, client_factory):
         """测试单个用户修改昵称失败-纯数字"""
         # 获取测试客户端
@@ -64,6 +82,13 @@ class TestUserNick:
         
         # 确保登录
         assert client.login(), "用户登录失败"
+        
+        # 先获取当前昵称
+        info_success, info_response = client.get_user_info()
+        assert info_success, "获取用户信息失败"
+        
+        original_nick = info_response.json()["data"]["nick"]
+        logger.info(f"当前昵称: {original_nick}")
         
         # 生成一个纯数字昵称
         timestamp = int(time.time())
@@ -79,6 +104,15 @@ class TestUserNick:
         result = response.json()
         assert result["errorCode"] != 0, "使用纯数字昵称时错误码应该不为0"
         
+        # 再次获取用户信息，验证昵称未被修改
+        info_success, info_response = client.get_user_info()
+        assert info_success, "获取用户信息失败"
+        
+        current_nick = info_response.json()["data"]["nick"]
+        assert current_nick == original_nick, f"昵称不应被修改，期望: {original_nick}, 实际: {current_nick}"
+        
+        logger.info(f"验证成功，昵称未被修改: {current_nick}")
+        
         # 记录请求和响应
         allure.attach(
             f"修改昵称为: {new_nick}",
@@ -89,6 +123,14 @@ class TestUserNick:
             f"{response.text}",
             name="响应数据",
             attachment_type=allure.attachment_type.TEXT
+        )
+        
+        # 将用户信息响应以格式化的JSON形式添加到报告中
+        formatted_info = json.dumps(info_response.json(), indent=2, ensure_ascii=False)
+        allure.attach(
+            formatted_info,
+            name="用户信息响应(格式化)",
+            attachment_type=allure.attachment_type.JSON
         )
     
     @allure.story("昵称修改")

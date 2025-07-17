@@ -30,6 +30,11 @@ user6:
   phoneCode: "86"
   description: "用户"
 
+user7:
+  phoneNumber: "15538337706"
+  phoneCode: "86"
+  description: "用户"
+
 
 
 

@@ -481,27 +481,43 @@ class UserAPI:
     @staticmethod
     def is_anchor(client):
         """
-        检查用户是否是主播
+        判断用户是否为主播
         :param client: API客户端实例
-        :return: 是否是主播
+        :return: 是否为主播
         """
         if not client.user_info or "userRoles" not in client.user_info:
-            logger.error("用户未登录或用户信息不完整")
             return False
         
-        # 检查userRoles数组中是否包含主播角色
-        user_roles = client.user_info.get("userRoles", [])
+        # 检查userRoles数组是否包含主播角色
+        user_roles = client.user_info["userRoles"]
+        return 3 in user_roles  # 3表示主播角色
         
-        # 根据API响应，角色是用整数表示的
-        # 主播角色可能是2或其他整数，这里需要根据实际情况调整
-        # 1: 普通用户
-        # 2: 可能是主播
-        # 如果userRoles中包含2，则认为是主播
-        is_anchor = 2 in user_roles
+    @staticmethod
+    def modify_avatar(client, avatar):
+        """
+        修改用户头像
+        :param client: API客户端实例
+        :param avatar: 头像地址
+        :return: (是否成功, 响应对象)
+        """
+        response = client.request(
+            method="POST",
+            url="/api/user/v1/user/modifyAvatar",
+            json={"avatar": avatar}
+        )
         
-        if is_anchor:
-            logger.info("当前用户是主播")
-        else:
-            logger.info("当前用户不是主播")
+        if response.status_code != 200:
+            logger.error(f"修改头像失败: {response.text}")
+            return False, response
         
-        return is_anchor 
+        result = response.json()
+        if result.get("errorCode") != 0:
+            logger.error(f"修改头像失败: {result.get('errorMessage')}")
+            return False, response
+        
+        # 更新本地用户信息
+        if client.user_info:
+            client.user_info["avatar"] = avatar
+        
+        logger.info(f"修改头像成功: {avatar}")
+        return True, response 

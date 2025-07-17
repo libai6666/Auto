@@ -109,6 +109,14 @@ class UserClient(APIClient):
         """
         return UserAPI.modify_profile(self, gender, birthday, country)
     
+    def modify_avatar(self, avatar):
+        """
+        修改用户头像
+        :param avatar: 头像地址
+        :return: (是否成功, 响应对象)
+        """
+        return UserAPI.modify_avatar(self, avatar)
+    
     def apply_for_anchor(self, photo_path=None):
         """
         申请主播认证

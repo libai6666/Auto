@@ -56,7 +56,7 @@ class TestUserNick:
     
     @allure.story("昵称修改")
     @allure.title("测试单个用户修改昵称失败-纯数字")
-    @pytest.mark.negative
+    @pytest.mark.medium
     def test_modify_nick_failure_numbers(self, client_factory):
         """测试单个用户修改昵称失败-纯数字"""
         # 获取测试客户端
@@ -94,7 +94,7 @@ class TestUserNick:
     @allure.story("昵称修改")
     @pytest.mark.skip(reason="并发修改昵称测试，跳过")
     @allure.title("测试多个用户同时修改昵称成功-纯英文")
-    @pytest.mark.smoke
+    @pytest.mark.medium
     def test_multi_users_modify_nick(self, client_factory):
         """测试多个用户同时修改昵称成功-纯英文"""
         # 获取多个客户端

@@ -231,3 +231,19 @@ def extract_data(response, extract_rules):
         logger.error(f"提取变量失败: {str(e)}")
     
     return extracted_vars 
+
+def load_yaml_data(file_path):
+    """
+    加载YAML文件数据
+    :param file_path: YAML文件路径（相对于项目根目录）
+    :return: 加载的数据
+    """
+    yaml_path = os.path.join(PROJECT_ROOT, file_path)
+    
+    try:
+        with open(yaml_path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+        return data
+    except Exception as e:
+        logger.error(f"加载YAML数据失败: {str(e)}")
+        return None 

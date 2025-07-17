@@ -1,0 +1,17 @@
+avatar_test_data:
+  # 有效的头像地址
+  valid_avatars:
+    - "2023/03/24/138e73bbec0818915d77025becbd32bf.jpg"
+    - "2023/05/09/882b307f642db22bb346b8964eaeb89d.jpg"
+    - "2023/03/28/12e71b54221225c57e658a6c6c26a14b.jpg"
+    - "2023/03/29/27aeb8da3471ceb66e75c5555bededa5.jpg"
+    - "2023/03/30/3d919702a4e5a94a45fff048d4349ce6.jpg"
+    - "2023/03/30/3984d471df31febe05339c64ff7a8f35.jpg"
+    - "2023/05/10/53c66fbc66e6e0699f3a2596876b4fdd.jpg"
+    - "2023/03/30/245ab02daee8495f420cb43dc392e2d3.jpg"
+    - "2023/03/30/e3b972353cc595a63cd9c2fe1d4d6013.jpg"
+  
+  # 无效的头像数据
+  invalid_avatars:
+    - ""  # 空字符串
+    - null  # 空值

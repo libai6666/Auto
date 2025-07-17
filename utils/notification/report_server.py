@@ -697,13 +697,19 @@ def stop_report_server():
 
 
 if __name__ == "__main__":
-    # 测试代码
-    if len(sys.argv) > 1:
-        reports_dir = sys.argv[1]
-    else:
-        reports_dir = "reports"
+    # 添加命令行参数支持
+    import argparse
     
-    url = start_report_server(reports_dir)
+    parser = argparse.ArgumentParser(description="测试报告服务器")
+    parser.add_argument("--dir", "-d", default="reports", help="报告根目录")
+    parser.add_argument("--port", "-p", type=int, default=7987, help="服务器端口")
+    args = parser.parse_args()
+    
+    # 启动报告服务器
+    reports_dir = args.dir
+    port = args.port
+    
+    url = start_report_server(reports_dir, port)
     print(f"报告服务器已启动: {url}")
     print("按Ctrl+C停止服务器")
     

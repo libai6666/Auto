@@ -14,8 +14,16 @@ services:
       - DOCKER_ENV=true
       # 如果您有固定的公网IP或域名，可以在这里设置
       - REPORT_SERVER_HOST=192.168.0.110
+      # 报告清理配置
+      - REPORT_RETENTION_DAYS=30  # 报告保留天数
     networks:
       - report-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.connect(('localhost', 7987)); s.close()"]
+      interval: 1h
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
 networks:
   report-network:

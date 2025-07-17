@@ -138,7 +138,7 @@ def main():
     os.chdir(project_root)
     
     # 清理旧的报告文件
-    cleanup_reports()
+    # cleanup_reports()
     
     # 日志记录
     logger.info("=" * 80)

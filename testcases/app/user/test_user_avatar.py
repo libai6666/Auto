@@ -7,6 +7,7 @@ import random
 import json
 from utils.logger import logger
 from utils.data_handler import load_yaml_data  # 使用我们新添加的函数
+from utils.app.api.user import UserAPI
 
 @allure.feature("用户功能")
 class TestUserAvatar:
@@ -37,7 +38,7 @@ class TestUserAvatar:
         
         with allure.step("第三步：调用修改头像接口"):
             # 修改头像
-            success, response = client.modify_avatar(avatar)
+            success, response = UserAPI.modify_avatar(client, avatar)
             
             # 断言
             assert success, f"修改头像失败: {response.text if response else '无响应'}"
@@ -81,7 +82,7 @@ class TestUserAvatar:
         
         with allure.step("第三步：调用修改头像接口"):
             # 修改头像
-            success, response = client.modify_avatar(avatar)
+            success, response = UserAPI.modify_avatar(client, avatar)
             
             # 断言应该失败
             assert not success, "空头像地址应该修改失败，但实际成功了"

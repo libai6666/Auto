@@ -11,7 +11,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils.client_factory import ClientFactory
 from utils.logger import logger
-from utils.api.user import UserAPI
+from utils.app.api.user import UserAPI
 
 
 def apply_for_anchors(count, base_phone="17000000000", phone_code="43", photo_path=None):
@@ -61,7 +61,8 @@ def apply_for_anchors(count, base_phone="17000000000", phone_code="43", photo_pa
         time.sleep(3)  # 增加到3秒
         
         # 完善用户资料（性别为女性，国家为IN，生日为2005-10-01）
-        success, response = client.modify_profile(
+        success, response = UserAPI.modify_profile(
+            client,
             gender=2,         # 女性
             country="IN",     # 印度
             birthday="2005-10-01"  # 生日
@@ -74,7 +75,7 @@ def apply_for_anchors(count, base_phone="17000000000", phone_code="43", photo_pa
         time.sleep(3)  # 增加到3秒
         
         # 申请主播认证
-        success, response = client.apply_for_anchor(photo_path)
+        success, response = UserAPI.apply_for_anchor(client, photo_path)
         if not success:
             logger.error(f"申请主播认证失败，跳过此用户")
             continue

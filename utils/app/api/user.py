@@ -19,11 +19,12 @@ class UserAPI:
     """用户相关API接口封装"""
     
     @staticmethod
-    def login(client, force=False, max_retries=3, retry_delay=5):
+    def login(client, force=False, login_type="phone", max_retries=3, retry_delay=5):
         """
         执行登录流程
         :param client: API客户端实例
         :param force: 是否强制重新登录
+        :param login_type: 登录类型，支持 "phone"(手机验证码)、"google"(Google登录)、"account"(账号密码)
         :param max_retries: 最大重试次数
         :param retry_delay: 重试延迟（秒）
         :return: 登录是否成功
@@ -32,9 +33,57 @@ class UserAPI:
         if client.access_token and not force:
             return True
         
+        # 验证登录类型
+        if login_type not in ["phone", "google", "account"]:
+            logger.error(f"不支持的登录类型: {login_type}，支持的类型有: phone, google, account")
+            return False
+        
+        # 检查必要的配置参数
+        if login_type == "phone" and (not client.user_config.get("phoneNumber") or not client.user_config.get("phoneCode")):
+            logger.error("手机登录缺少必要参数: phoneNumber 或 phoneCode")
+            return False
+        elif login_type == "google" and not client.user_config.get("google_token"):
+            logger.error("Google登录缺少必要参数: google_token")
+            return False
+        elif login_type == "account" and (not client.user_config.get("account") or not client.user_config.get("password")):
+            logger.error("账号密码登录缺少必要参数: account 或 password")
+            return False
+        
         import re
         
         retry_count = 0
+        while retry_count < max_retries:
+            try:
+                # 根据登录类型选择不同的登录流程
+                if login_type == "phone":
+                    # 手机验证码登录流程
+                    return UserAPI._login_with_phone(client, retry_count, max_retries, retry_delay)
+                elif login_type == "google":
+                    # Google登录流程
+                    return UserAPI._login_with_google(client)
+                elif login_type == "account":
+                    # 账号密码登录流程
+                    return UserAPI._login_with_account(client)
+            except Exception as e:
+                logger.error(f"登录过程中发生错误: {str(e)}")
+                retry_count += 1
+                time.sleep(retry_delay)
+        
+        logger.error(f"登录失败，已达到最大重试次数 {max_retries}")
+        return False
+    
+    @staticmethod
+    def _login_with_phone(client, retry_count=0, max_retries=3, retry_delay=5):
+        """
+        使用手机验证码登录
+        :param client: API客户端实例
+        :param retry_count: 当前重试次数
+        :param max_retries: 最大重试次数
+        :param retry_delay: 重试延迟（秒）
+        :return: 登录是否成功
+        """
+        import re
+        
         while retry_count < max_retries:
             try:
                 # 第一步：发送短信验证码
@@ -125,40 +174,104 @@ class UserAPI:
                     auto_login=False  # 防止递归调用
                 )
                 
-                # 检查登录是否成功
-                if login_response.status_code != 200:
-                    logger.error(f"登录失败: {login_response.text}")
-                    retry_count += 1
-                    time.sleep(retry_delay)
-                    continue
-                
-                login_result = login_response.json()
-                if login_result.get("errorCode") != 0:
-                    logger.error(f"登录失败: {login_result.get('errorMessage')}")
-                    retry_count += 1
-                    time.sleep(retry_delay)
-                    continue
-                
-                # 保存token和用户信息
-                client.access_token = login_result["data"]["accessToken"]
-                client.user_info = login_result["data"]["userInfo"]
-                
-                # 更新Authorization头
-                client.session.headers.update({"Authorization": client.access_token})
-                
-                # 获取用户身份描述
-                role_description = UserAPI.get_user_role_description(client)
-                
-                logger.info(f"登录成功，用户ID: {client.user_info['uid']}, 昵称: {client.user_info['nick']}, 身份: {role_description}")
-                return True
+                # 处理登录响应
+                return UserAPI._handle_login_response(client, login_response)
                 
             except Exception as e:
-                logger.error(f"登录过程中发生错误: {str(e)}")
+                logger.error(f"手机登录过程中发生错误: {str(e)}")
                 retry_count += 1
                 time.sleep(retry_delay)
         
-        logger.error(f"登录失败，已达到最大重试次数 {max_retries}")
+        logger.error(f"手机登录失败，已达到最大重试次数 {max_retries}")
         return False
+    
+    @staticmethod
+    def _login_with_google(client):
+        """
+        使用Google Token登录
+        :param client: API客户端实例
+        :return: 登录是否成功
+        """
+        try:
+            # 执行Google登录
+            login_response = client.request(
+                method="POST",
+                url="/api/user/v1/user/login",
+                json={
+                    "bizId": 1,
+                    "channel": "google",
+                    "token": client.user_config["google_token"],
+                    "deviceType": client.user_config.get("deviceType", "android")
+                },
+                auto_login=False  # 防止递归调用
+            )
+            
+            # 处理登录响应
+            return UserAPI._handle_login_response(client, login_response)
+            
+        except Exception as e:
+            logger.error(f"Google登录过程中发生错误: {str(e)}")
+            return False
+    
+    @staticmethod
+    def _login_with_account(client):
+        """
+        使用账号密码登录
+        :param client: API客户端实例
+        :return: 登录是否成功
+        """
+        try:
+            # 执行账号密码登录
+            login_response = client.request(
+                method="POST",
+                url="/api/user/v1/user/login",
+                json={
+                    "bizId": 1,
+                    "channel": "account",
+                    "token": client.user_config["account"],
+                    "password": client.user_config["password"],
+                    "deviceType": client.user_config.get("deviceType", "android")
+                },
+                auto_login=False  # 防止递归调用
+            )
+            
+            # 处理登录响应
+            return UserAPI._handle_login_response(client, login_response)
+            
+        except Exception as e:
+            logger.error(f"账号密码登录过程中发生错误: {str(e)}")
+            return False
+    
+    @staticmethod
+    def _handle_login_response(client, login_response):
+        """
+        处理登录响应
+        :param client: API客户端实例
+        :param login_response: 登录响应
+        :return: 登录是否成功
+        """
+        # 检查登录是否成功
+        if login_response.status_code != 200:
+            logger.error(f"登录失败: {login_response.text}")
+            return False
+        
+        login_result = login_response.json()
+        if login_result.get("errorCode") != 0:
+            logger.error(f"登录失败: {login_result.get('errorMessage')}")
+            return False
+        
+        # 保存token和用户信息
+        client.access_token = login_result["data"]["accessToken"]
+        client.user_info = login_result["data"]["userInfo"]
+        
+        # 更新Authorization头
+        client.session.headers.update({"Authorization": client.access_token})
+        
+        # 获取用户身份描述
+        role_description = UserAPI.get_user_role_description(client)
+        
+        logger.info(f"登录成功，用户ID: {client.user_info['uid']}, 昵称: {client.user_info['nick']}, 身份: {role_description}")
+        return True
     
     @staticmethod
     def modify_nick(client, new_nick):
@@ -268,9 +381,10 @@ class UserAPI:
             return "普通用户"
     
     @staticmethod
-    def get_local_photo_required():
+    def get_local_photo_required(client=None):
         """
         获取是否需要本地图片
+        :param client: API客户端实例（可选）
         :return: 是否需要本地图片
         """
         # 根据环境或配置决定是否需要使用本地图片
@@ -278,12 +392,18 @@ class UserAPI:
         return True
     
     @staticmethod
-    def load_photo_from_file(file_path):
+    def load_photo_from_file(client=None, file_path=None):
         """
         从文件加载照片数据
+        :param client: API客户端实例（可选）
         :param file_path: 照片文件路径
         :return: Base64编码的照片数据
         """
+        # 兼容旧的调用方式
+        if client is not None and file_path is None:
+            file_path = client
+            client = None
+            
         try:
             # 检查文件是否存在
             if not os.path.exists(file_path):
@@ -434,13 +554,20 @@ class UserAPI:
         return True, result_data
     
     @staticmethod
-    def save_base64_to_image(base64_str, file_path):
+    def save_base64_to_image(client=None, base64_str=None, file_path=None):
         """
         保存Base64编码的图片到文件
+        :param client: API客户端实例（可选）
         :param base64_str: Base64编码的图片数据
         :param file_path: 保存路径
         :return: 是否成功
         """
+        # 兼容旧的调用方式
+        if client is not None and base64_str is not None and file_path is None:
+            file_path = base64_str
+            base64_str = client
+            client = None
+            
         try:
             # 确保目录存在
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
@@ -600,3 +727,116 @@ class UserAPI:
         logger.info(f"成功获取在线付费用户列表，共 {len(users)} 个用户")
         
         return True, response 
+
+    @staticmethod
+    def apply_for_anchor(client, photo_path=None):
+        """
+        申请主播认证
+        :param client: API客户端实例
+        :param photo_path: 必须，指定照片文件路径，用作头像和人脸照片
+        :return: (是否成功, 响应对象)
+        """
+        # 检查必须提供照片路径
+        if not photo_path:
+            logger.error("必须提供照片路径！申请主播认证需要头像和人脸照片")
+            return False, None
+            
+        # 检查文件是否存在
+        # 如果是相对路径，尝试从当前目录开始解析
+        if not os.path.isabs(photo_path) and not os.path.exists(photo_path):
+            # 尝试从当前目录解析
+            current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            abs_photo_path = os.path.join(current_dir, photo_path)
+            if os.path.exists(abs_photo_path):
+                logger.info(f"使用绝对路径: {abs_photo_path}")
+                photo_path = abs_photo_path
+            else:
+                # 再尝试从工作目录解析
+                work_dir_path = os.path.join(os.getcwd(), photo_path)
+                if os.path.exists(work_dir_path):
+                    logger.info(f"使用工作目录路径: {work_dir_path}")
+                    photo_path = work_dir_path
+        
+        # 最终检查文件是否存在
+        if not os.path.exists(photo_path):
+            logger.error(f"指定的照片文件不存在: {photo_path}")
+            logger.error("请确保路径正确，可以使用绝对路径或相对于工作目录的路径")
+            return False, None
+            
+        # 获取用户ID的后三位
+        uid = client.get_user_id()
+        if not uid:
+            logger.error("无法获取用户ID，申请主播失败")
+            return False, None
+            
+        # 提取用户ID后三位并转换为拼音
+        uid_last_three = str(uid)[-3:]
+        
+        # 导入pypinyin，仅在此函数中使用
+        try:
+            from pypinyin import lazy_pinyin
+            
+            # 将数字转为汉字，再转为拼音的函数
+            def number_to_chinese(number):
+                chinese_dict = {
+                    0: '零', 1: '一', 2: '二', 3: '三', 4: '四',
+                    5: '五', 6: '六', 7: '七', 8: '八', 9: '九'
+                }
+                return chinese_dict.get(number, '零')
+                
+            pinyin_list = []
+            for digit in uid_last_three:
+                # 将数字转为汉字，再转为拼音
+                chinese_digit = number_to_chinese(int(digit))
+                pinyin = ''.join(lazy_pinyin(chinese_digit))
+                pinyin_list.append(pinyin)
+            
+            # 构造昵称: A + UID后三位拼音
+            nick = "A" + ''.join(pinyin_list)
+            
+        except ImportError:
+            # 如果没有安装pypinyin，使用简单的昵称
+            logger.warning("未安装pypinyin模块，使用简单昵称")
+            nick = "A" + uid_last_three
+        
+        # 获取照片数据
+        logger.info(f"使用指定图片文件作为头像和人脸照片: {photo_path}")
+        photo_data = UserAPI.load_photo_from_file(client, photo_path)
+        if photo_data is None:
+            logger.error(f"加载照片文件失败: {photo_path}")
+            return False, None
+        
+        logger.info(f"成功加载指定图片文件: {photo_path}，图片大小: {len(photo_data)/1024:.2f} KB")
+        
+        # 申请主播认证
+        success, response = UserAPI.apply_for_anchor_certification(client, nick, photo_data, photo_data)
+        
+        # 如果成功，记录详细信息并验证图片URL
+        if success:
+            logger.info(f"用户 {client.get_user_nick()} (ID: {client.get_user_id()}) 成功申请主播认证")
+            
+            # 进一步验证URL是否有效
+            data = response.get("data", {})
+            avatar_url = data.get("avatar")
+            face_url = data.get("face")
+            
+            if avatar_url:
+                logger.info(f"头像URL: {avatar_url}")
+                try:
+                    # 解析URL格式
+                    url_parts = avatar_url.split("/")
+                    if len(url_parts) >= 7:
+                        year = url_parts[-4]
+                        month = url_parts[-3]
+                        day = url_parts[-2]
+                        file_name = url_parts[-1]
+                        logger.info(f"URL解析: 年份={year}, 月份={month}, 日期={day}, 文件名={file_name}")
+                except Exception as e:
+                    logger.warning(f"解析头像URL时出错: {str(e)}")
+            
+            # 更新用户信息中的头像URL
+            if "avatar" in data and client.user_info:
+                client.user_info["avatar"] = data["avatar"]
+                logger.info("已更新用户信息中的头像URL")
+        
+        return success, response 

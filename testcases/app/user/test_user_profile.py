@@ -7,6 +7,7 @@ import random
 import json
 from utils.logger import logger
 from utils.data_handler import load_yaml_data
+from utils.app.api.user import UserAPI
 
 @allure.feature("用户功能")
 class TestUserProfile:
@@ -39,7 +40,7 @@ class TestUserProfile:
         
         with allure.step("第三步：调用修改用户资料接口"):
             # 修改用户生日
-            success, response = client.modify_profile(birthday=birthday)
+            success, response = UserAPI.modify_profile(client, birthday=birthday)
             
             # 断言
             assert success, f"修改用户生日失败: {response.text if response else '无响应'}"
@@ -67,7 +68,7 @@ class TestUserProfile:
         
         with allure.step("第四步：验证生日修改是否生效"):
             # 调用获取用户信息接口验证生日是否修改成功
-            info_success, info_response = client.get_user_info()
+            info_success, info_response = UserAPI.get_user_info(client)
             assert info_success, "获取用户信息失败"
             
             info_result = info_response.json()
@@ -108,7 +109,7 @@ class TestUserProfile:
         
         with allure.step("第三步：调用修改用户资料接口"):
             # 修改用户国家
-            success, response = client.modify_profile(country=country)
+            success, response = UserAPI.modify_profile(client, country=country)
             
             # 断言
             assert success, f"修改用户国家失败: {response.text if response else '无响应'}"
@@ -136,7 +137,7 @@ class TestUserProfile:
         
         with allure.step("第四步：验证国家修改是否生效"):
             # 调用获取用户信息接口验证国家是否修改成功
-            info_success, info_response = client.get_user_info()
+            info_success, info_response = UserAPI.get_user_info(client)
             assert info_success, "获取用户信息失败"
             
             info_result = info_response.json()
@@ -177,7 +178,7 @@ class TestUserProfile:
         
         with allure.step("第三步：调用修改用户资料接口"):
             # 修改用户语言
-            success, response = client.modify_profile(lang=lang)
+            success, response = UserAPI.modify_profile(client, lang=lang)
             
             # 断言
             assert success, f"修改用户语言失败: {response.text if response else '无响应'}"
@@ -205,7 +206,7 @@ class TestUserProfile:
         
         with allure.step("第四步：验证语言修改是否生效"):
             # 调用获取用户信息接口验证语言是否修改成功
-            info_success, info_response = client.get_user_info()
+            info_success, info_response = UserAPI.get_user_info(client)
             assert info_success, "获取用户信息失败"
             
             info_result = info_response.json()
@@ -246,7 +247,7 @@ class TestUserProfile:
         
         with allure.step("第三步：调用修改用户资料接口"):
             # 修改用户视频地址
-            success, response = client.modify_profile(videoUrl=video_url)
+            success, response = UserAPI.modify_profile(client, videoUrl=video_url)
             
             # 断言
             assert success, f"修改用户视频地址失败: {response.text if response else '无响应'}"
@@ -274,7 +275,7 @@ class TestUserProfile:
         
         with allure.step("第四步：验证视频地址修改是否生效"):
             # 调用获取用户信息接口验证视频地址是否修改成功
-            info_success, info_response = client.get_user_info()
+            info_success, info_response = UserAPI.get_user_info(client)
             assert info_success, "获取用户信息失败"
             
             info_result = info_response.json()

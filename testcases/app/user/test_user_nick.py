@@ -9,6 +9,8 @@ import random
 import string
 from utils.logger import logger
 import json
+from utils.app.api.user import UserAPI
+
 # 生成随机字母字符串的辅助函数
 def random_string(length=8):
     """生成随机字母字符串"""
@@ -39,7 +41,7 @@ class TestUserNick:
         
         with allure.step("第三步：调用修改昵称接口"):
             # 修改昵称
-            success, response = client.modify_nick(new_nick)
+            success, response = UserAPI.modify_nick(client, new_nick)
             
             # 断言
             assert success, f"修改昵称失败: {response.text if response else '无响应'}"
@@ -62,7 +64,7 @@ class TestUserNick:
         
         with allure.step("第四步：验证昵称修改是否生效"):
             # 调用获取用户信息接口验证昵称是否修改成功
-            info_success, info_response = client.get_user_info()
+            info_success, info_response = UserAPI.get_user_info(client)
             assert info_success, "获取用户信息失败"
             
             info_result = info_response.json()
@@ -95,7 +97,7 @@ class TestUserNick:
         
         with allure.step("第二步：获取当前昵称"):
             # 先获取当前昵称
-            info_success, info_response = client.get_user_info()
+            info_success, info_response = UserAPI.get_user_info(client)
             assert info_success, "获取用户信息失败"
             
             original_nick = info_response.json()["data"]["nick"]
@@ -110,7 +112,7 @@ class TestUserNick:
         
         with allure.step("第四步：调用修改昵称接口（预期失败）"):
             # 修改昵称
-            success, response = client.modify_nick(new_nick)
+            success, response = UserAPI.modify_nick(client, new_nick)
             
             # 断言应该失败
             assert not success, "纯数字昵称应该修改失败，但实际成功了"
@@ -133,7 +135,7 @@ class TestUserNick:
         
         with allure.step("第五步：验证昵称未被修改"):
             # 再次获取用户信息，验证昵称未被修改
-            info_success, info_response = client.get_user_info()
+            info_success, info_response = UserAPI.get_user_info(client)
             assert info_success, "获取用户信息失败"
             
             current_nick = info_response.json()["data"]["nick"]
@@ -174,7 +176,7 @@ class TestUserNick:
         
     #     # 定义修改昵称的函数
     #     def modify_nick(client, new_nick, index):
-    #         success, response = client.modify_nick(new_nick)
+    #         success, response = UserAPI.modify_nick(client, new_nick)
     #         results[index] = (success, response)
         
     #     # 创建线程

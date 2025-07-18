@@ -6,6 +6,7 @@ import allure
 import json
 import time
 from utils.logger import logger
+from utils.app.api.user import UserAPI
 
 @allure.feature("用户功能")
 class TestOnlinePayUsers:
@@ -23,7 +24,7 @@ class TestOnlinePayUsers:
             assert login_success, "用户8登录失败"
         
         with allure.step("第二步：获取用户8的信息，确认其为付费用户"):
-            user8_info_success, user8_info_response = user8_client.get_user_info()
+            user8_info_success, user8_info_response = UserAPI.get_user_info(user8_client)
             assert user8_info_success, "获取用户8信息失败"
             user8_info = user8_info_response.json()
             
@@ -47,7 +48,7 @@ class TestOnlinePayUsers:
             assert anchor_login_success, "主播用户1登录失败"
         
         with allure.step("第四步：获取主播用户信息，确认其为主播身份"):
-            anchor_info_success, anchor_info_response = anchor_client.get_user_info()
+            anchor_info_success, anchor_info_response = UserAPI.get_user_info(anchor_client)
             assert anchor_info_success, "获取主播用户1信息失败"
             anchor_info = anchor_info_response.json()
             
@@ -67,7 +68,7 @@ class TestOnlinePayUsers:
             allure.attach("等待5秒完成", name="等待结果", attachment_type=allure.attachment_type.TEXT)
         
         with allure.step("第六步：主播调用获取在线付费用户列表接口"):
-            success, response = anchor_client.get_online_pay_users()
+            success, response = UserAPI.get_online_pay_users(anchor_client)
             
             # 断言
             assert success, f"获取在线付费用户列表失败: {response.text if response else '无响应'}"
@@ -117,7 +118,7 @@ class TestOnlinePayUsers:
             assert login_success, "用户9登录失败"
         
         with allure.step("第二步：获取用户9的信息，确认其为付费用户"):
-            user9_info_success, user9_info_response = user9_client.get_user_info()
+            user9_info_success, user9_info_response = UserAPI.get_user_info(user9_client)
             assert user9_info_success, "获取用户9信息失败"
             user9_info = user9_info_response.json()
             
@@ -141,7 +142,7 @@ class TestOnlinePayUsers:
             assert anchor_login_success, "主播用户1登录失败"
         
         with allure.step("第四步：获取主播用户信息，确认其为主播身份"):
-            anchor_info_success, anchor_info_response = anchor_client.get_user_info()
+            anchor_info_success, anchor_info_response = UserAPI.get_user_info(anchor_client)
             assert anchor_info_success, "获取主播用户1信息失败"
             anchor_info = anchor_info_response.json()
             
@@ -161,7 +162,7 @@ class TestOnlinePayUsers:
             allure.attach("等待5秒完成", name="等待结果", attachment_type=allure.attachment_type.TEXT)
         
         with allure.step("第六步：主播调用获取在线付费用户列表接口"):
-            success, response = anchor_client.get_online_pay_users()
+            success, response = UserAPI.get_online_pay_users(anchor_client)
             
             # 断言
             assert success, f"获取在线付费用户列表失败: {response.text if response else '无响应'}"

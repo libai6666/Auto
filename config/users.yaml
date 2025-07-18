@@ -66,6 +66,31 @@ user13:
   phoneCode: "43"
   description: "主播+代理+币商(uid:10096)"
 
+# 以下是新增的登录方式示例
+
+# Google登录示例
+google_user:
+  google_token: "google_oauth2_token_example"
+  deviceType: "android"
+  description: "Google登录用户示例"
+
+# 账号密码登录示例
+account_user:
+  account: "test_account"
+  password: "test_password"
+  deviceType: "android"
+  description: "账号密码登录用户示例"
+
+# 混合配置示例（支持多种登录方式）
+multi_login_user:
+  phoneNumber: "12300"
+  phoneCode: "43"
+  account: "multi_test"
+  password: "multi_password"
+  google_token: "google_token_example"
+  deviceType: "android"
+  description: "支持多种登录方式的用户示例"
+
 
 
 

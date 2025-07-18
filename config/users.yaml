@@ -1,41 +1,70 @@
 # 测试用户配置
+# 用户自动化注册的用户 120开头为主播、121开头为用户、122开头为代理
 user1:
-  phoneNumber: "17447"
+  phoneNumber: "12000"
   phoneCode: "43"
-  description: "主播1(uid:10015)"
+  description: "主播(uid:10084)"
 
 
 user2:
-  phoneNumber: "17411"
+  phoneNumber: "12001"
   phoneCode: "43"
-  description: "主播2(uid:10026)" 
+  description: "主播(uid:10085)" 
 
 user3:
-  phoneNumber: "17443"
+  phoneNumber: "12002"
   phoneCode: "43"
-  description: "用户1(uid:10034)"
+  description: "主播(uid:10086)"
 
 user4:
-  phoneNumber: "18211761185"
-  phoneCode: "86"
-  description: "用户+代理(uid:10035)"
+  phoneNumber: "12100"
+  phoneCode: "43"
+  description: "男付费用户(uid:10087)"
 
 user5:
-  phoneNumber: "17442"
+  phoneNumber: "12101"
   phoneCode: "43"
-  description: "主播+代理(uid:10007)"
+  description: "女付费用户(uid:10088)"
 
 user6:
-  phoneNumber: "15538337705"
-  phoneCode: "86"
-  description: "用户"
+  phoneNumber: "12102"
+  phoneCode: "43"
+  description: "男未付费用户(uid:10089)"
 
 user7:
-  phoneNumber: "15538337706"
-  phoneCode: "86"
-  description: "用户"
+  phoneNumber: "12103"
+  phoneCode: "43"
+  description: "女未付费用户(uid:10090)"
 
+user8:
+  phoneNumber: "12104"
+  phoneCode: "43"
+  description: "男付费用户(uid:10091)(与主播uid:10084 小于200亲密)用于在线付费用户列表接口,其他场景勿动"
 
+user9:
+  phoneNumber: "12105"
+  phoneCode: "43"
+  description: "女付费用户(uid:10092)(与主播uid:10084大于200亲密)用于在线付费用户列表接口,其他场景勿动"
+
+user10:
+  phoneNumber: "12200"
+  phoneCode: "43"
+  description: "代理(uid:10093)"
+
+user11:
+  phoneNumber: "12201"
+  phoneCode: "43"
+  description: "代理+币商(uid:10094)"
+
+user12:
+  phoneNumber: "12202"
+  phoneCode: "43"
+  description: "主播+代理(uid:10095)"
+
+user13:
+  phoneNumber: "12203"
+  phoneCode: "43"
+  description: "主播+代理+币商(uid:10096)"
 
 
 

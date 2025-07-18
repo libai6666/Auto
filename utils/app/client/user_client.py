@@ -127,6 +127,13 @@ class UserClient(APIClient):
         """
         return UserAPI.get_user_info(self, uid)
     
+    def get_online_pay_users(self):
+        """
+        获取在线付费用户列表
+        :return: (是否成功, 响应对象)
+        """
+        return UserAPI.get_online_pay_users(self)
+    
     def apply_for_anchor(self, photo_path=None):
         """
         申请主播认证

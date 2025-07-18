@@ -90,6 +90,35 @@ def cleanup_reports():
     logger.info(f"报告清理完成，共删除了 {removed_count} 个过期报告目录")
 
 
+def clear_today_logs():
+    """
+    清空当天的日志内容
+    用于debug模式下，每次执行前清空日志，方便排查问题
+    """
+    # 获取当前日期的日志文件路径
+    log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+    today_log_file = os.path.join(log_dir, datetime.now().strftime("%Y-%m-%d") + ".log")
+    
+    # 检查文件是否存在
+    if os.path.exists(today_log_file):
+        try:
+            # 清空文件内容（打开文件并立即关闭，使用'w'模式会清空文件）
+            with open(today_log_file, 'w', encoding='utf-8') as f:
+                pass
+            logger.info("已清空当天日志文件，进入调试模式")
+        except Exception as e:
+            logger.error(f"清空当天日志文件失败: {str(e)}")
+    else:
+        # 如果文件不存在，创建一个空文件
+        try:
+            os.makedirs(os.path.dirname(today_log_file), exist_ok=True)
+            with open(today_log_file, 'w', encoding='utf-8') as f:
+                pass
+            logger.info("已创建新的日志文件，进入调试模式")
+        except Exception as e:
+            logger.error(f"创建日志文件失败: {str(e)}")
+
+
 def parse_args():
     """
     解析命令行参数
@@ -118,7 +147,7 @@ def parse_args():
                         help="失败重试次数，0表示不重试")
     
     # 调试参数
-    parser.add_argument("--debug", action="store_true", help="是否开启调试模式")
+    parser.add_argument("--debug", action="store_true", help="是否开启调试模式，开启后会清空当天日志内容")
     
     # 钉钉通知参数
     parser.add_argument("--dingtalk", action="store_true", help="是否发送测试报告到钉钉群")
@@ -136,6 +165,10 @@ def main():
     # 设置工作目录为项目根目录
     project_root = os.path.dirname(os.path.abspath(__file__))
     os.chdir(project_root)
+    
+    # 如果开启了debug模式，清空当天日志
+    if args.debug:
+        clear_today_logs()
     
     # 清理旧的报告文件
     # cleanup_reports()
@@ -186,6 +219,7 @@ def main():
     if args.debug:
         pytest_args.append("--verbose")
         os.environ["DEBUG_MODE"] = "1"
+        logger.info("已启用调试模式")
     
     # 记录测试命令
     logger.info(f"执行的Pytest参数: {' '.join(pytest_args)}")

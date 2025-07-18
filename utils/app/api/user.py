@@ -572,4 +572,31 @@ class UserAPI:
                 client.user_info = result.get("data")
             logger.info(f"成功获取用户资料: {result['data'].get('nick')} (ID: {result['data'].get('uid')})")
         
+        return True, response
+        
+    @staticmethod
+    def get_online_pay_users(client):
+        """
+        获取在线付费用户列表
+        :param client: API客户端实例
+        :return: (是否成功, 响应对象)
+        """
+        response = client.request(
+            method="GET",
+            url="/api/user/v1/user/online/pay"
+        )
+        
+        if response.status_code != 200:
+            logger.error(f"获取在线付费用户列表失败: {response.text}")
+            return False, response
+        
+        result = response.json()
+        if result.get("errorCode") != 0:
+            logger.error(f"获取在线付费用户列表失败: {result.get('errorMessage')}")
+            return False, response
+        
+        # 获取用户列表，如果为None则使用空列表
+        users = result.get("data", {}).get("list") or []
+        logger.info(f"成功获取在线付费用户列表，共 {len(users)} 个用户")
+        
         return True, response 

@@ -25,15 +25,21 @@ class ClientFactory:
         self.agent_clients = {}  # 缓存已创建的代理客户端
         self.manager_clients = {}  # 缓存已创建的管理客户端
     
-    def get_client(self, user_id):
+    def get_client(self, user_id, auto_heartbeat=True):
         """
         获取指定用户的客户端
         :param user_id: 用户配置ID
+        :param auto_heartbeat: 是否自动启动心跳，默认为True
         :return: UserClient实例
         """
         # 检查缓存中是否已有此客户端
         if user_id in self.clients:
-            return self.clients[user_id]
+            # 如果已有客户端且需要启用心跳，但当前未启用，则启动心跳
+            client = self.clients[user_id]
+            if auto_heartbeat and not client.auto_heartbeat and client.access_token:
+                client.auto_heartbeat = True
+                client.start_heartbeat()
+            return client
         
         # 检查用户配置是否存在
         if user_id not in self.user_configs:
@@ -41,17 +47,18 @@ class ClientFactory:
             return None
         
         # 创建新客户端
-        client = UserClient(self.user_configs[user_id])
+        client = UserClient(self.user_configs[user_id], auto_heartbeat=auto_heartbeat)
         self.clients[user_id] = client
         
         return client
     
-    def create_custom_client(self, phone_number, phone_code, description=None):
+    def create_custom_client(self, phone_number, phone_code, description=None, auto_heartbeat=True):
         """
         创建自定义用户客户端
         :param phone_number: 手机号
         :param phone_code: 国家代码
         :param description: 描述
+        :param auto_heartbeat: 是否自动启动心跳，默认为True
         :return: UserClient实例
         """
         user_config = {
@@ -64,17 +71,18 @@ class ClientFactory:
         user_id = f"custom_{phone_code}_{phone_number}"
         
         # 创建客户端
-        client = UserClient(user_config)
+        client = UserClient(user_config, auto_heartbeat=auto_heartbeat)
         self.clients[user_id] = client
         
         return client
     
-    def create_clients(self, count, base_phone="9000000000", phone_code="1"):
+    def create_clients(self, count, base_phone="9000000000", phone_code="1", auto_heartbeat=True):
         """
         批量创建多个用户客户端
         :param count: 要创建的客户端数量
         :param base_phone: 基础电话号码，会递增
         :param phone_code: 国家代码
+        :param auto_heartbeat: 是否自动启动心跳，默认为True
         :return: 客户端列表
         """
         clients = []
@@ -82,7 +90,7 @@ class ClientFactory:
         
         for i in range(count):
             phone = str(base_num + i)
-            client = self.create_custom_client(phone, phone_code, f"批量用户{i+1}")
+            client = self.create_custom_client(phone, phone_code, f"批量用户{i+1}", auto_heartbeat=auto_heartbeat)
             clients.append(client)
         
         return clients

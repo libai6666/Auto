@@ -12,6 +12,7 @@ from utils.logger import logger, setup_logger, cleanup_logs
 from utils.data_handler import load_config
 from utils.db_utils import MySQLHandler
 from utils.client_factory import ClientFactory
+from utils.app.heartbeat import stop_all_heartbeats
 
 # 初始化日志
 logger = setup_logger()
@@ -28,6 +29,19 @@ def cleanup_old_logs():
     logger.info("正在运行自动日志清理...")
     cleanup_logs()
     yield
+
+
+@pytest.fixture(scope="session", autouse=True)
+def cleanup_heartbeats():
+    """
+    在测试会话结束时自动清理所有心跳线程
+    """
+    # 测试开始前不做任何事
+    yield
+    
+    # 测试结束后停止所有心跳线程
+    logger.info("测试会话结束，正在清理所有心跳线程...")
+    stop_all_heartbeats()
 
 
 def pytest_configure(config):

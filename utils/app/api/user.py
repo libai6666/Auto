@@ -49,21 +49,34 @@ class UserAPI:
             logger.error("账号密码登录缺少必要参数: account 或 password")
             return False
         
-        import re
-        
         retry_count = 0
         while retry_count < max_retries:
             try:
-                # 根据登录类型选择不同的登录流程
+                # 根据登录类型从user_config中获取参数
                 if login_type == "phone":
-                    # 手机验证码登录流程
-                    return UserAPI._login_with_phone(client, retry_count, max_retries, retry_delay)
+                    return UserAPI.login_direct(
+                        client,
+                        channel="phone",
+                        token=client.user_config["phoneNumber"],
+                        phoneCode=client.user_config["phoneCode"],
+                        deviceType=client.user_config.get("deviceType", "android")
+                    )
                 elif login_type == "google":
-                    # Google登录流程
-                    return UserAPI._login_with_google(client)
+                    return UserAPI.login_direct(
+                        client,
+                        channel="google",
+                        token=client.user_config["google_token"],
+                        password=client.user_config.get("password"),
+                        deviceType=client.user_config.get("deviceType", "android")
+                    )
                 elif login_type == "account":
-                    # 账号密码登录流程
-                    return UserAPI._login_with_account(client)
+                    return UserAPI.login_direct(
+                        client,
+                        channel="account",
+                        token=client.user_config["account"],
+                        password=client.user_config["password"],
+                        deviceType=client.user_config.get("deviceType", "android")
+                    )
             except Exception as e:
                 logger.error(f"登录过程中发生错误: {str(e)}")
                 retry_count += 1
@@ -71,176 +84,6 @@ class UserAPI:
         
         logger.error(f"登录失败，已达到最大重试次数 {max_retries}")
         return False
-    
-    @staticmethod
-    def _login_with_phone(client, retry_count=0, max_retries=3, retry_delay=5):
-        """
-        使用手机验证码登录
-        :param client: API客户端实例
-        :param retry_count: 当前重试次数
-        :param max_retries: 最大重试次数
-        :param retry_delay: 重试延迟（秒）
-        :return: 登录是否成功
-        """
-        import re
-        
-        while retry_count < max_retries:
-            try:
-                # 第一步：发送短信验证码
-                send_sms_response = client.request(
-                    method="POST",
-                    url="/api/user/v1/user/login/sendSms",
-                    json={
-                        "phoneNum": client.user_config["phoneNumber"],
-                        "phoneCode": client.user_config["phoneCode"]
-                    },
-                    auto_login=False  # 防止递归调用
-                )
-                
-                # 检查发送短信是否成功
-                if send_sms_response.status_code != 200:
-                    logger.error(f"发送短信验证码失败: {send_sms_response.text}")
-                    retry_count += 1
-                    time.sleep(retry_delay)
-                    continue
-                
-                sms_result = send_sms_response.json()
-                if sms_result.get("errorCode") != 0:
-                    error_message = sms_result.get('errorMessage', '')
-                    logger.error(f"发送短信验证码失败: {error_message}")
-                    
-                    # 频率限制错误，等待更长时间
-                    if "Frequently" in error_message:
-                        logger.warning(f"触发频率限制，等待{retry_delay*3}秒后重试...")
-                        time.sleep(retry_delay * 3)
-                    else:
-                        time.sleep(retry_delay)
-                    
-                    retry_count += 1
-                    continue
-                
-                logger.info(f"发送短信验证码成功，手机: {client.user_config['phoneCode']}-{client.user_config['phoneNumber']}")
-                
-                # 获取实际验证码
-                get_code_response = client.request(
-                    method="POST",
-                    url="/api/user/v1/operate/submit",
-                    json={
-                        "operateName": "admin",
-                        "phone": client.user_config["phoneNumber"],
-                        "areaCode": client.user_config["phoneCode"],
-                        "operate": "App短信验证码"
-                    },
-                    auto_login=False  # 防止递归调用
-                )
-                
-                # 检查获取验证码是否成功
-                if get_code_response.status_code != 200:
-                    logger.error(f"获取验证码失败: {get_code_response.text}")
-                    retry_count += 1
-                    time.sleep(retry_delay)
-                    continue
-                
-                code_result = get_code_response.json()
-                if code_result.get("errorCode") != 0 or not code_result.get("succeed"):
-                    logger.error(f"获取验证码失败: {code_result.get('errorMessage')}")
-                    retry_count += 1
-                    time.sleep(retry_delay)
-                    continue
-                
-                # 从响应中提取验证码
-                code_message = code_result["data"]["jsonValue"]
-                sms_code_match = re.search(r'验证码为 \[(\d+)\]', code_message)
-                if not sms_code_match:
-                    logger.error(f"无法从响应中提取验证码: {code_message}")
-                    retry_count += 1
-                    time.sleep(retry_delay)
-                    continue
-                
-                sms_code = sms_code_match.group(1)
-                logger.info(f"成功获取验证码: {sms_code}")
-                
-                # 第二步：执行登录
-                login_response = client.request(
-                    method="POST",
-                    url="/api/user/v1/user/login",
-                    json={
-                        "bizId": 1,
-                        "channel": "phone",
-                        "token": client.user_config["phoneNumber"],
-                        "phoneCode": client.user_config["phoneCode"],
-                        "smsCode": sms_code  # 使用提取的验证码
-                    },
-                    auto_login=False  # 防止递归调用
-                )
-                
-                # 处理登录响应
-                return UserAPI._handle_login_response(client, login_response)
-                
-            except Exception as e:
-                logger.error(f"手机登录过程中发生错误: {str(e)}")
-                retry_count += 1
-                time.sleep(retry_delay)
-        
-        logger.error(f"手机登录失败，已达到最大重试次数 {max_retries}")
-        return False
-    
-    @staticmethod
-    def _login_with_google(client):
-        """
-        使用Google Token登录
-        :param client: API客户端实例
-        :return: 登录是否成功
-        """
-        try:
-            # 执行Google登录
-            login_response = client.request(
-                method="POST",
-                url="/api/user/v1/user/login",
-                json={
-                    "bizId": 1,
-                    "channel": "google",
-                    "token": client.user_config["google_token"],
-                    "deviceType": client.user_config.get("deviceType", "android")
-                },
-                auto_login=False  # 防止递归调用
-            )
-            
-            # 处理登录响应
-            return UserAPI._handle_login_response(client, login_response)
-            
-        except Exception as e:
-            logger.error(f"Google登录过程中发生错误: {str(e)}")
-            return False
-    
-    @staticmethod
-    def _login_with_account(client):
-        """
-        使用账号密码登录
-        :param client: API客户端实例
-        :return: 登录是否成功
-        """
-        try:
-            # 执行账号密码登录
-            login_response = client.request(
-                method="POST",
-                url="/api/user/v1/user/login",
-                json={
-                    "bizId": 1,
-                    "channel": "account",
-                    "token": client.user_config["account"],
-                    "password": client.user_config["password"],
-                    "deviceType": client.user_config.get("deviceType", "android")
-                },
-                auto_login=False  # 防止递归调用
-            )
-            
-            # 处理登录响应
-            return UserAPI._handle_login_response(client, login_response)
-            
-        except Exception as e:
-            logger.error(f"账号密码登录过程中发生错误: {str(e)}")
-            return False
     
     @staticmethod
     def _handle_login_response(client, login_response):
@@ -840,3 +683,162 @@ class UserAPI:
                 logger.info("已更新用户信息中的头像URL")
         
         return success, response 
+
+    @staticmethod
+    def login_direct(client, channel="phone", token=None, password=None, phoneCode=None, smsCode=None, 
+                    deviceId=None, inviteCode=None, anchorId=None, deviceType="android", bizId=1):
+        """
+        直接使用传入的参数执行登录流程
+        :param client: API客户端实例
+        :param channel: 登录渠道，支持 "phone"(手机验证码)、"google"(Google登录)、"account"(账号密码)、"apple"(Apple登录)
+        :param token: 登录令牌，根据渠道不同而不同：
+                     - phone: 手机号
+                     - google: Google令牌
+                     - account: 账号名
+                     - apple: Apple令牌
+        :param password: 密码（账号登录和Google登录时使用）
+        :param phoneCode: 手机区号（手机登录时使用）
+        :param smsCode: 短信验证码（手机登录时使用）
+        :param deviceId: 设备号
+        :param inviteCode: 注册邀请码
+        :param anchorId: 链接地址中的主播id
+        :param deviceType: 登录设备类型，如ios、android
+        :param bizId: 包类型，默认为1
+        :return: 登录是否成功
+        """
+        # 验证登录渠道
+        if channel not in ["phone", "google", "account", "apple"]:
+            logger.error(f"不支持的登录渠道: {channel}，支持的渠道有: phone, google, account, apple")
+            return False
+        
+        # 检查必要的参数
+        if not token:
+            logger.error(f"登录失败: token参数是必须的")
+            return False
+        
+        if channel == "phone" and not phoneCode:
+            logger.error("手机登录缺少必要参数: phoneCode")
+            return False
+        
+        if (channel == "account" or channel == "google") and not password:
+            logger.error(f"{channel}登录缺少必要参数: password")
+            return False
+        
+        # 如果是手机登录且未提供验证码，则自动获取
+        if channel == "phone" and not smsCode:
+            smsCode = UserAPI._get_phone_verification_code(client, token, phoneCode)
+            if not smsCode:
+                return False
+        
+        # 构建登录请求数据
+        login_data = {
+            "bizId": bizId,
+            "channel": channel,
+            "token": token,
+            "deviceType": deviceType
+        }
+        
+        # 根据不同登录渠道添加特定参数
+        if channel == "phone":
+            login_data["phoneCode"] = phoneCode
+            login_data["smsCode"] = smsCode
+        elif channel in ["account", "google"]:
+            login_data["password"] = password
+        
+        # 添加可选参数（如果提供）
+        if deviceId:
+            login_data["deviceId"] = deviceId
+        if inviteCode:
+            login_data["inviteCode"] = inviteCode
+        if anchorId:
+            login_data["anchorId"] = anchorId
+        
+        try:
+            # 执行登录请求
+            login_response = client.request(
+                method="POST",
+                url="/api/user/v1/user/login",
+                json=login_data,
+                auto_login=False  # 防止递归调用
+            )
+            
+            # 处理登录响应
+            return UserAPI._handle_login_response(client, login_response)
+            
+        except Exception as e:
+            logger.error(f"{channel}登录过程中发生错误: {str(e)}")
+            return False
+    
+    @staticmethod
+    def _get_phone_verification_code(client, phone_number, phone_code):
+        """
+        获取手机验证码
+        :param client: API客户端实例
+        :param phone_number: 手机号
+        :param phone_code: 手机区号
+        :return: 验证码，如果失败则返回None
+        """
+        import re
+        
+        try:
+            # 发送短信验证码
+            send_sms_response = client.request(
+                method="POST",
+                url="/api/user/v1/user/login/sendSms",
+                json={
+                    "phoneNum": phone_number,
+                    "phoneCode": phone_code
+                },
+                auto_login=False  # 防止递归调用
+            )
+            
+            # 检查发送短信是否成功
+            if send_sms_response.status_code != 200:
+                logger.error(f"发送短信验证码失败: {send_sms_response.text}")
+                return None
+            
+            sms_result = send_sms_response.json()
+            if sms_result.get("errorCode") != 0:
+                error_message = sms_result.get('errorMessage', '')
+                logger.error(f"发送短信验证码失败: {error_message}")
+                return None
+            
+            logger.info(f"发送短信验证码成功，手机: {phone_code}-{phone_number}")
+            
+            # 获取实际验证码
+            get_code_response = client.request(
+                method="POST",
+                url="/api/user/v1/operate/submit",
+                json={
+                    "operateName": "admin",
+                    "phone": phone_number,
+                    "areaCode": phone_code,
+                    "operate": "App短信验证码"
+                },
+                auto_login=False  # 防止递归调用
+            )
+            
+            # 检查获取验证码是否成功
+            if get_code_response.status_code != 200:
+                logger.error(f"获取验证码失败: {get_code_response.text}")
+                return None
+            
+            code_result = get_code_response.json()
+            if code_result.get("errorCode") != 0 or not code_result.get("succeed"):
+                logger.error(f"获取验证码失败: {code_result.get('errorMessage')}")
+                return None
+            
+            # 从响应中提取验证码
+            code_message = code_result["data"]["jsonValue"]
+            sms_code_match = re.search(r'验证码为 \[(\d+)\]', code_message)
+            if not sms_code_match:
+                logger.error(f"无法从响应中提取验证码: {code_message}")
+                return None
+            
+            sms_code = sms_code_match.group(1)
+            logger.info(f"成功获取验证码: {sms_code}")
+            return sms_code
+            
+        except Exception as e:
+            logger.error(f"获取手机验证码过程中发生错误: {str(e)}")
+            return None 

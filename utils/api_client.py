@@ -88,15 +88,14 @@ class APIClient:
         log_msg += f"Method: {method}\n"
         log_msg += f"URL: {complete_url}\n"
         
-        # 记录请求头
+        # 记录请求头（合并session默认头和自定义头）
+        request_headers = self.session.headers.copy()
         if headers:
-            log_msg += "Headers:\n"
-            for key, value in headers.items():
-                # 敏感信息处理
-                if key.lower() in ['authorization', 'token', 'password', 'secret']:
-                    log_msg += f"  {key}: ******\n"
-                else:
-                    log_msg += f"  {key}: {value}\n"
+            request_headers.update(headers)
+            
+        log_msg += "Headers:\n"
+        for key, value in request_headers.items():
+            log_msg += f"  {key}: {value}\n"
         
         # 记录请求参数
         if params:

@@ -1,16 +1,27 @@
 avatar_test_data:
   # 有效的头像地址
   valid_avatars:
-    - "/2023/03/24/138e73bbec0818915d77025becbd32bf.jpg"
-    - "/2023/05/09/882b307f642db22bb346b8964eaeb89d.jpg"
-    - "/2023/03/28/12e71b54221225c57e658a6c6c26a14b.jpg"
-    - "/2023/03/29/27aeb8da3471ceb66e75c5555bededa5.jpg"
-    - "/2023/03/30/3d919702a4e5a94a45fff048d4349ce6.jpg"
-    - "/2023/03/30/3984d471df31febe05339c64ff7a8f35.jpg"
-    - "/2023/05/10/53c66fbc66e6e0699f3a2596876b4fdd.jpg"
-    - "/2023/03/30/245ab02daee8495f420cb43dc392e2d3.jpg"
-    - "/2023/03/30/e3b972353cc595a63cd9c2fe1d4d6013.jpg"
+    - "/2025/07/27/267402bc5726410b079d475da15ae8e1.jpg"
+    - "/2025/07/27/d276b9aa82a71b86dd941f9eaacfa971.jpg"
+    - "/2025/07/27/2a908d735bd490315adab734054b3532.jpg"
+    - "/2025/07/27/34d2b511be89e5ce7c1d85fea3656439.jpg"
+    - "/2025/07/26/2602adb558594905c0efa8799e2ce656.jpg"
+    - "/2025/07/28/48600fe85b2f84f6dfbdaa02d2f37c68.jpg"
+    - "/2025/07/28/e7e8926337e13fe0014ce58f1d7ce755.jpg"
+    - "/2025/07/27/04db4de47801782f8e6644aae236d6dd.jpg"
+    - "/2025/07/27/eb81bf96024859892accef0c2adead6f.jpg"
+    - "/2025/07/27/d276b9aa82a71b86dd941f9eaacfa971.jpg"
   
+  valid_face_urls:
+    - "/2025/07/27/2a908d735bd490315adab734054b3532.jpg"
+    - "/2025/07/27/94ce10d69fb9cd5761a2068777e877d1.jpg"
+    - "/2025/07/27/10810b41348eee5849e3d8468bfde28a.jpg"
+    - "/2025/07/27/f1f2fa2f85d53eb7b4b5fe7a5482c192.jpg"
+    - "/2025/07/27/646717d5ca2dc0c3568349767d935919.jpg"
+    - "/2025/07/27/392e91fc97e6e79a017fc8fbcfd010bb.jpg"
+    - "/2025/07/26/c0a80307b5c0f575a4b9c3947a144a91.jpg"
+    - "/2025/07/26/fe5c5df09fda13c7779bcb44aab45b65.jpg"
+
   # 无效的头像数据
   invalid_avatars:
     - ""  # 空字符串

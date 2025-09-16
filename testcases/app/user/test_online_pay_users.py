@@ -63,20 +63,42 @@ class TestOnlinePayUsers:
                 attachment_type=allure.attachment_type.JSON
             )
         
-        with allure.step("第五步：等待5秒，确保登录状态已更新"):
-            time.sleep(5)
-            allure.attach("等待5秒完成", name="等待结果", attachment_type=allure.attachment_type.TEXT)
+        # with allure.step("第五步：等待5秒，确保登录状态已更新"):
+        #     time.sleep(5)
+        #     allure.attach("等待5秒完成", name="等待结果", attachment_type=allure.attachment_type.TEXT)
         
         with allure.step("第六步：主播调用获取在线付费用户列表接口"):
-            success, response = UserAPI.get_online_pay_users(anchor_client)
+            max_retries = 5
+            retry_count = 0
+            retry_delay = 3
+            result = None
             
-            # 断言
-            assert success, f"获取在线付费用户列表失败: {response.text if response else '无响应'}"
-            
-            # 检查响应
-            result = response.json()
-            assert result["errorCode"] == 0, f"响应错误码不为0: {result['errorMessage']}"
-            assert result["succeed"] == True, "响应succeed字段不为True"
+            while retry_count <= max_retries:
+                success, response = UserAPI.get_online_pay_users(anchor_client)
+                
+                # 断言API调用成功
+                assert success, f"获取在线付费用户列表失败: {response.text if response else '无响应'}"
+                
+                # 检查响应
+                result = response.json()
+                assert result["errorCode"] == 0, f"响应错误码不为0: {result['errorMessage']}"
+                assert result["succeed"] == True, "响应succeed字段不为True"
+                
+                # 检查列表是否为空
+                if result["data"]["list"] is not None and len(result["data"]["list"]) > 0:
+                    logger.info(f"成功获取在线付费用户列表，共 {len(result['data']['list'])} 个用户")
+                    allure.attach(f"重试次数: {retry_count}，获取到非空列表", name="重试结果", attachment_type=allure.attachment_type.TEXT)
+                    break
+                
+                if retry_count < max_retries:
+                    logger.info(f"在线付费用户列表为空，{retry_delay}秒后进行第 {retry_count + 1} 次重试")
+                    allure.attach(f"重试次数: {retry_count}，列表为空，将在{retry_delay}秒后重试", name="重试状态", attachment_type=allure.attachment_type.TEXT)
+                    time.sleep(retry_delay)
+                    retry_count += 1
+                else:
+                    logger.warning(f"已达到最大重试次数 {max_retries}，在线付费用户列表仍为空")
+                    allure.attach(f"已达到最大重试次数 {max_retries}，列表仍为空", name="重试结束", attachment_type=allure.attachment_type.TEXT)
+                    break
         
         with allure.step("第七步：检查用户8是否在列表中"):
             # 检查用户8是否在列表中
@@ -157,20 +179,42 @@ class TestOnlinePayUsers:
                 attachment_type=allure.attachment_type.JSON
             )
         
-        with allure.step("第五步：等待5秒，确保登录状态已更新"):
-            time.sleep(5)
-            allure.attach("等待5秒完成", name="等待结果", attachment_type=allure.attachment_type.TEXT)
+        # with allure.step("第五步：等待5秒，确保登录状态已更新"):
+        #     time.sleep(5)
+        #     allure.attach("等待5秒完成", name="等待结果", attachment_type=allure.attachment_type.TEXT)
         
         with allure.step("第六步：主播调用获取在线付费用户列表接口"):
-            success, response = UserAPI.get_online_pay_users(anchor_client)
+            max_retries = 5
+            retry_count = 0
+            retry_delay = 3
+            result = None
             
-            # 断言
-            assert success, f"获取在线付费用户列表失败: {response.text if response else '无响应'}"
-            
-            # 检查响应
-            result = response.json()
-            assert result["errorCode"] == 0, f"响应错误码不为0: {result['errorMessage']}"
-            assert result["succeed"] == True, "响应succeed字段不为True"
+            while retry_count <= max_retries:
+                success, response = UserAPI.get_online_pay_users(anchor_client)
+                
+                # 断言API调用成功
+                assert success, f"获取在线付费用户列表失败: {response.text if response else '无响应'}"
+                
+                # 检查响应
+                result = response.json()
+                assert result["errorCode"] == 0, f"响应错误码不为0: {result['errorMessage']}"
+                assert result["succeed"] == True, "响应succeed字段不为True"
+                
+                # 检查列表是否为空
+                if result["data"]["list"] is not None and len(result["data"]["list"]) > 0:
+                    logger.info(f"成功获取在线付费用户列表，共 {len(result['data']['list'])} 个用户")
+                    allure.attach(f"重试次数: {retry_count}，获取到非空列表", name="重试结果", attachment_type=allure.attachment_type.TEXT)
+                    break
+                
+                if retry_count < max_retries:
+                    logger.info(f"在线付费用户列表为空，{retry_delay}秒后进行第 {retry_count + 1} 次重试")
+                    allure.attach(f"重试次数: {retry_count}，列表为空，将在{retry_delay}秒后重试", name="重试状态", attachment_type=allure.attachment_type.TEXT)
+                    time.sleep(retry_delay)
+                    retry_count += 1
+                else:
+                    logger.warning(f"已达到最大重试次数 {max_retries}，在线付费用户列表仍为空")
+                    allure.attach(f"已达到最大重试次数 {max_retries}，列表仍为空", name="重试结束", attachment_type=allure.attachment_type.TEXT)
+                    break
         
         with allure.step("第七步：检查用户9是否不在列表中"):
             # 检查用户9是否不在列表中

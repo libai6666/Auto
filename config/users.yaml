@@ -19,12 +19,12 @@ user3:
 user4:
   phoneNumber: "12100"
   phoneCode: "43"
-  description: "男付费用户(uid:10087)"
+  description: "男付费用户(uid:10087)高等级用户12级"
 
 user5:
   phoneNumber: "12101"
   phoneCode: "43"
-  description: "女付费用户(uid:10088)"
+  description: "女付费用户(uid:10088)低等级用户1级"
 
 user6:
   phoneNumber: "12102"

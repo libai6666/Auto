@@ -44,6 +44,8 @@ def parse_args():
                         help="并行执行测试的进程数，0表示不并行")
     parser.add_argument("--reruns", type=int, default=0,
                         help="失败重试次数，0表示不重试")
+    # 钉钉通知参数
+    parser.add_argument("--dingtalk", action="store_true", help="是否发送测试报告到钉钉群")
     
     # 调试参数
     parser.add_argument("--debug", action="store_true", help="是否开启调试模式")

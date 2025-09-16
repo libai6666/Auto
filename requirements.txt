@@ -16,7 +16,7 @@ allure-python-commons==2.13.2
 psycopg2-binary==2.9.10
 pillow>=9.0.0
 pypinyin>=0.48.0
-
+pytest-rerunfailures==12.0
 # 可能的其他项目依赖
 # 以下是猜测的可能依赖项，请根据项目实际情况调整
 # pytest>=7.0.0  # 如果使用pytest进行测试

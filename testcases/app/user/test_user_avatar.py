@@ -8,18 +8,17 @@ import json
 from utils.logger import logger
 from utils.data_handler import load_yaml_data  # 使用我们新添加的函数
 from utils.app.api.user import UserAPI
-
 @allure.feature("用户功能")
 class TestUserAvatar:
     """用户头像修改测试"""
     
     @allure.story("头像修改")
-    @allure.title("测试用户修改头像成功")
+    @allure.title("测试主播用户修改头像成功")
     @pytest.mark.smoke
     def test_modify_avatar_success(self, client_factory):
-        """测试用户修改头像成功"""
+        """测试主播用户修改头像成功（主播可以直接修改头像）"""
         with allure.step("第一步：获取测试客户端并登录"):
-            # 获取测试客户端
+            # 获取测试客户端（user1是主播）
             client = client_factory.get_client("user1")
             
             # 确保登录
@@ -41,7 +40,7 @@ class TestUserAvatar:
             success, response = UserAPI.modify_avatar(client, avatar)
             
             # 断言
-            assert success, f"修改头像失败: {response.text if response else '无响应'}"
+            assert success, f"主播修改头像失败: {response.text if response else '无响应'}"
         
         with allure.step("第四步：验证响应结果"):
             # 检查响应
@@ -96,6 +95,103 @@ class TestUserAvatar:
             # 记录请求和响应
             allure.attach(
                 f"修改头像为空字符串",
+                name="请求数据",
+                attachment_type=allure.attachment_type.TEXT
+            )
+            allure.attach(
+                json.dumps(result, indent=2, ensure_ascii=False),
+                name="响应数据(格式化)",
+                attachment_type=allure.attachment_type.JSON
+            )
+    
+    @allure.story("头像修改")
+    @allure.title("测试低等级用户修改头像失败")
+    @pytest.mark.medium
+    def test_modify_avatar_failure_low_level(self, client_factory):
+        """测试低等级用户（等级小于3级）修改头像失败"""
+        with allure.step("第一步：获取测试客户端并登录"):
+            # 获取测试客户端（user5是低等级用户1级）
+            client = client_factory.get_client("user5")
+            
+            # 确保登录
+            login_success = client.login()
+            allure.attach(str(login_success), name="登录结果", attachment_type=allure.attachment_type.TEXT)
+            assert login_success, "用户登录失败"
+        
+        with allure.step("第二步：加载测试数据，选择有效头像"):
+            # 加载测试数据
+            avatar_data = load_yaml_data("data/app/user.yaml")
+            valid_avatars = avatar_data["avatar_test_data"]["valid_avatars"]
+            
+            # 随机选择一个有效的头像地址
+            avatar = random.choice(valid_avatars)
+            allure.attach(avatar, name="选择的头像URL", attachment_type=allure.attachment_type.TEXT)
+        
+        with allure.step("第三步：调用修改头像接口"):
+            # 修改头像
+            success, response = UserAPI.modify_avatar(client, avatar)
+            
+            # 断言应该失败（低等级用户不能修改头像）
+            assert not success, "低等级用户（小于3级）应该无法修改头像，但实际成功了"
+        
+        with allure.step("第四步：验证响应结果"):
+            # 检查响应
+            result = response.json()
+            assert result["errorCode"] != 0, "低等级用户修改头像时错误码应该不为0"
+            assert result["succeed"] == False, "响应succeed字段应为False"
+            
+            # 记录请求和响应
+            allure.attach(
+                f"低等级用户尝试修改头像为: {avatar}",
+                name="请求数据",
+                attachment_type=allure.attachment_type.TEXT
+            )
+            allure.attach(
+                json.dumps(result, indent=2, ensure_ascii=False),
+                name="响应数据(格式化)",
+                attachment_type=allure.attachment_type.JSON
+            )
+    
+    @allure.story("头像修改")
+    @allure.title("测试高等级用户修改头像成功")
+    @pytest.mark.flaky(reruns=3, reruns_delay =2)# 添加重试装饰器：重试3次，每次间隔2秒
+    @pytest.mark.medium
+    def test_modify_avatar_success_high_level(self, client_factory):
+        """测试高等级用户（等级大于等于3级）修改头像成功"""
+        with allure.step("第一步：获取测试客户端并登录"):
+            # 获取测试客户端（user4是高等级用户12级）
+            client = client_factory.get_client("user4")
+            
+            # 确保登录
+            login_success = client.login()
+            allure.attach(str(login_success), name="登录结果", attachment_type=allure.attachment_type.TEXT)
+            assert login_success, "用户登录失败"
+        
+        with allure.step("第二步：加载测试数据，选择有效头像"):
+            # 加载测试数据
+            avatar_data = load_yaml_data("data/app/user.yaml")
+            valid_avatars = avatar_data["avatar_test_data"]["valid_avatars"]
+            
+            # 随机选择一个有效的头像地址
+            avatar = random.choice(valid_avatars)
+            allure.attach(avatar, name="选择的头像URL", attachment_type=allure.attachment_type.TEXT)
+        
+        with allure.step("第三步：调用修改头像接口"):
+            # 修改头像
+            success, response = UserAPI.modify_avatar(client, avatar)
+            
+            # 断言
+            assert success, f"高等级用户修改头像失败: {response.text if response else '无响应'}"
+        
+        with allure.step("第四步：验证响应结果"):
+            # 检查响应
+            result = response.json()
+            assert result["errorCode"] == 0, f"响应错误码不为0: {result['errorMessage']}"
+            assert result["succeed"] == True, "响应succeed字段不为True"
+            
+            # 记录请求和响应
+            allure.attach(
+                f"高等级用户修改头像为: {avatar}",
                 name="请求数据",
                 attachment_type=allure.attachment_type.TEXT
             )

@@ -11,7 +11,23 @@ avatar_test_data:
     - "/2025/07/27/04db4de47801782f8e6644aae236d6dd.jpg"
     - "/2025/07/27/eb81bf96024859892accef0c2adead6f.jpg"
     - "/2025/07/27/d276b9aa82a71b86dd941f9eaacfa971.jpg"
-  
+  valid_man_avatars:
+    - "/gift/avatar_other_9.png"
+    - "/gift/avatar_other_8.png"
+    - "/gift/avatar_other_7.png"
+    - "/gift/avatar_other_6.png"
+    - "/gift/avatar_other_5.png"
+    - "/gift/avatar_other_4.png"
+    - "/gift/avatar_other_3.png"
+    - "/gift/avatar_other_2.png"
+    - "/gift/avatar_other_1.png"
+    # - "/2025/09/17/56d7c45bbbea4501994ebd8df3fe3047.jpg"
+    # - "/2025/09/17/f46231dea74518b17f163433745944fe.jpg"
+    # - "/2025/09/17/0020a76f5b4cc550044b7467fbc39d8f.jpg"
+    # - "/2025/09/17/a367816bb689ad75a73a1a24477324ed.jpg"
+    # - "/2025/09/17/c21ec68d29dedf8a3cd52e7bdfc625b1.jpg"
+    # - "/2025/09/16/32825bd6b9e7331be9490829f74836fd.jpg"
+
   valid_face_urls:
     - "/2025/07/27/2a908d735bd490315adab734054b3532.jpg"
     - "/2025/07/27/94ce10d69fb9cd5761a2068777e877d1.jpg"
@@ -21,7 +37,7 @@ avatar_test_data:
     - "/2025/07/27/392e91fc97e6e79a017fc8fbcfd010bb.jpg"
     - "/2025/07/26/c0a80307b5c0f575a4b9c3947a144a91.jpg"
     - "/2025/07/26/fe5c5df09fda13c7779bcb44aab45b65.jpg"
-
+  
   # 无效的头像数据
   invalid_avatars:
     - ""  # 空字符串

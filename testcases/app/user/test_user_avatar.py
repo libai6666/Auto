@@ -11,7 +11,6 @@ from utils.app.api.user import UserAPI
 @allure.feature("用户功能")
 class TestUserAvatar:
     """用户头像修改测试"""
-    
     @allure.story("头像修改")
     @allure.title("测试主播用户修改头像成功")
     @pytest.mark.smoke
@@ -20,7 +19,6 @@ class TestUserAvatar:
         with allure.step("第一步：获取测试客户端并登录"):
             # 获取测试客户端（user1是主播）
             client = client_factory.get_client("user1")
-            
             # 确保登录
             login_success = client.login()
             allure.attach(str(login_success), name="登录结果", attachment_type=allure.attachment_type.TEXT)
@@ -121,7 +119,7 @@ class TestUserAvatar:
         with allure.step("第二步：加载测试数据，选择有效头像"):
             # 加载测试数据
             avatar_data = load_yaml_data("data/app/user.yaml")
-            valid_avatars = avatar_data["avatar_test_data"]["valid_avatars"]
+            valid_avatars = avatar_data["avatar_test_data"]["valid_man_avatars"]
             
             # 随机选择一个有效的头像地址
             avatar = random.choice(valid_avatars)
@@ -170,7 +168,7 @@ class TestUserAvatar:
         with allure.step("第二步：加载测试数据，选择有效头像"):
             # 加载测试数据
             avatar_data = load_yaml_data("data/app/user.yaml")
-            valid_avatars = avatar_data["avatar_test_data"]["valid_avatars"]
+            valid_avatars = avatar_data["avatar_test_data"]["valid_man_avatars"]
             
             # 随机选择一个有效的头像地址
             avatar = random.choice(valid_avatars)

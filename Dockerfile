@@ -8,7 +8,7 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# 先复制依赖文件
+# 复制报告服务器专用依赖文件（精简版）
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 

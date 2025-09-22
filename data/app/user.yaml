@@ -12,15 +12,11 @@ avatar_test_data:
     - "/2025/07/27/eb81bf96024859892accef0c2adead6f.jpg"
     - "/2025/07/27/d276b9aa82a71b86dd941f9eaacfa971.jpg"
   valid_man_avatars:
-    - "/gift/avatar_other_9.png"
-    - "/gift/avatar_other_8.png"
-    - "/gift/avatar_other_7.png"
-    - "/gift/avatar_other_6.png"
-    - "/gift/avatar_other_5.png"
-    - "/gift/avatar_other_4.png"
-    - "/gift/avatar_other_3.png"
-    - "/gift/avatar_other_2.png"
-    - "/gift/avatar_other_1.png"
+    - "/gift/avatar_male_1.png"
+    - "/gift/avatar_male_1.png"
+    - "/gift/avatar_male_1.png"
+    
+
     # - "/2025/09/17/56d7c45bbbea4501994ebd8df3fe3047.jpg"
     # - "/2025/09/17/f46231dea74518b17f163433745944fe.jpg"
     # - "/2025/09/17/0020a76f5b4cc550044b7467fbc39d8f.jpg"

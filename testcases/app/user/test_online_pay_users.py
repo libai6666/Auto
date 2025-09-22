@@ -233,23 +233,21 @@ class TestOnlinePayUsers:
                         logger.error(f"测试用户 (ID: {test_user_uid}, 昵称: {user['nick']}) 不应出现在在线付费用户列表中，但实际出现了")
                         break
                 
-                # 如果找到了测试用户或获取到了非空列表，则退出重试
+                # 如果找到了测试用户，则退出重试
                 if test_user_found or pay_users:
                     logger.info(f"成功获取在线付费用户列表，共 {len(pay_users)} 个用户")
                     if test_user_found:
                         allure.attach(f"重试次数: {retry_count}，在列表中找到了测试用户（不符合预期）", name="重试结果", attachment_type=allure.attachment_type.TEXT)
-                    else:
-                        allure.attach(f"重试次数: {retry_count}，获取到非空列表，测试用户不在列表中", name="重试结果", attachment_type=allure.attachment_type.TEXT)
                     break
                 
                 if retry_count < max_retries:
-                    logger.info(f"在线付费用户列表为空，{retry_delay}秒后进行第 {retry_count + 1} 次重试")
-                    allure.attach(f"重试次数: {retry_count}，列表为空，将在{retry_delay}秒后重试", name="重试状态", attachment_type=allure.attachment_type.TEXT)
+                    logger.info(f"在线付费用户列表未找到亲密度高的测试用户，{retry_delay}秒后进行第 {retry_count + 1} 次重试")
+                    allure.attach(f"重试次数: {retry_count}，列表未找到亲密度高的测试用户，将在{retry_delay}秒后重试", name="重试状态", attachment_type=allure.attachment_type.TEXT)
                     time.sleep(retry_delay)
                     retry_count += 1
                 else:
-                    logger.warning(f"已达到最大重试次数 {max_retries}，在线付费用户列表仍为空")
-                    allure.attach(f"已达到最大重试次数 {max_retries}，列表仍为空", name="重试结束", attachment_type=allure.attachment_type.TEXT)
+                    logger.warning(f"已达到最大重试次数 {max_retries}，列表仍未找到亲密度高的测试用户")
+                    allure.attach(f"已达到最大重试次数 {max_retries}，列表仍未找到亲密度高的测试用户", name="重试结束", attachment_type=allure.attachment_type.TEXT)
                     break
         
         with allure.step("第七步：检查高亲密度付费用户是否不在列表中"):

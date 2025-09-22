@@ -395,24 +395,46 @@ def main():
             
             # 查找所有测试结果JSON文件
             result_files = glob.glob(f"{allure_results_dir}/*.json")
+            logger.info(f"找到 {len(result_files)} 个测试结果JSON文件")
+            
+            # 用于跟踪已处理的测试用例
+            processed_tests = {}  # 使用字典存储每个测试用例的最新状态
             
             for file_path in result_files:
                 try:
                     with open(file_path, 'r', encoding='utf-8') as f:
                         data = json.load(f)
                         
-                        # 只处理测试结果文件
-                        if 'status' in data:
-                            test_summary["total"] += 1
+                        # 只处理测试结果文件，并且确保不重复计算
+                        if 'status' in data and ('fullName' in data or 'name' in data):
+                            # 使用fullName作为测试用例的唯一标识符，如果没有则使用name
+                            test_id = data.get('fullName', data.get('name', ''))
                             
-                            if data['status'].lower() == 'passed':
-                                test_summary["passed"] += 1
-                            elif data['status'].lower() == 'failed' or data['status'].lower() == 'broken':
-                                test_summary["failed"] += 1
-                            elif data['status'].lower() == 'skipped':
-                                test_summary["skipped"] += 1
+                            if test_id:
+                                # 更新或添加测试用例状态
+                                processed_tests[test_id] = data['status'].lower()
                 except Exception as e:
                     logger.error(f"解析测试结果文件失败: {str(e)}")
+            
+            # 计算最终统计结果
+            test_summary["total"] = len(processed_tests)
+            
+            for status in processed_tests.values():
+                if status == 'passed':
+                    test_summary["passed"] += 1
+                elif status == 'failed' or status == 'broken':
+                    test_summary["failed"] += 1
+                elif status == 'skipped':
+                    test_summary["skipped"] += 1
+            
+            # 添加重试信息
+            retry_count = len(result_files) - len(processed_tests)
+            if retry_count > 0:
+                test_summary["retry_count"] = retry_count
+                logger.info(f"检测到 {retry_count} 次测试重试")
+            
+            logger.info(f"去重后有 {len(processed_tests)} 个唯一测试用例")
+            logger.info(f"测试统计: 总数={test_summary['total']}, 通过={test_summary['passed']}, 失败={test_summary['failed']}, 跳过={test_summary['skipped']}")
         
         # 计算实际执行的用例数（总数减去跳过的）
         test_summary["executed"] = test_summary["total"] - test_summary["skipped"]

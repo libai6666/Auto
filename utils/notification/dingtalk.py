@@ -175,7 +175,13 @@ class DingTalkSender:
         text += f"- 跳过用例: {report_info.get('skipped', 0)} \n"
         text += f"- 错误用例: {report_info.get('error', 0)} \n"
         text += f"- 通过率: {pass_rate} \n"
-        text += f"- 执行时间: {duration_str} \n\n"
+        text += f"- 执行时间: {duration_str} \n"
+        
+        # # 如果有重试信息，添加到报告中
+        # if 'retry_count' in report_info and report_info['retry_count'] > 0:
+        #     text += f"- 重试次数: {report_info['retry_count']} \n"
+        
+        # text += "\n"
         
         # 如果有报告URL，添加链接
         if 'report_url' in report_info and report_info['report_url']:

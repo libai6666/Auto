@@ -1,6 +1,13 @@
 # Docker 版测试报告服务部署指南
 
 本文档详细说明如何将测试报告服务部署到 Docker 中，并配置为开机自启动。
+ 改动配置后重新部署docker方法：
+ 
+```bash
+ docker-compose up --build -d
+ 
+```
+ 
 
 ## 前置条件
 
@@ -118,6 +125,7 @@ docker-compose down
 
 # 查看日志
 docker logs test-report-server
+
 ```
 
 ### 系统服务管理（Linux）

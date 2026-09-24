@@ -621,6 +621,7 @@ def add_report(report_id, report_dir, metadata=None):
     """
     # 从配置中获取报告服务器URL
     from utils.logger import logger
+    from utils.network_utils import get_report_server_url
     import yaml
     import os
     import shutil
@@ -632,26 +633,36 @@ def add_report(report_id, report_dir, metadata=None):
         with open(config_path, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
             report_server = config.get('report_server', {})
-            report_server_url = report_server.get('url')
+            configured_url = report_server.get('url')
             is_enabled = report_server.get('enabled', True)
             
             if not is_enabled:
                 logger.info("报告服务器功能已禁用")
                 return None
             
-            if not report_server_url:
-                # 如果配置中没有URL，尝试使用本地服务器
-                server = get_report_server()
-                if not server.url:
-                    server.start()
-                return server.add_report(report_id, report_dir, metadata)
+            # 如果配置的是localhost，则自动替换为局域网IP
+            if configured_url and 'localhost' in configured_url:
+                # 从配置URL中提取端口
+                import re
+                match = re.match(r"http://localhost:(\d+)", configured_url)
+                if match:
+                    port = int(match.group(1))
+                    report_server_url = get_report_server_url(port)
+                    logger.info(f"将localhost替换为局域网IP: {report_server_url}")
+                else:
+                    report_server_url = configured_url
+            elif configured_url:
+                report_server_url = configured_url
+            else:
+                # 如果配置中没有URL，使用自动检测的IP
+                report_server_url = get_report_server_url(7987)
+                logger.info(f"使用自动检测的报告服务器URL: {report_server_url}")
+                
     except Exception as e:
         logger.error(f"读取配置失败: {str(e)}")
-        # 如果读取配置失败，尝试使用本地服务器
-        server = get_report_server()
-        if not server.url:
-            server.start()
-        return server.add_report(report_id, report_dir, metadata)
+        # 如果读取配置失败，使用自动检测的IP
+        report_server_url = get_report_server_url(7987)
+        logger.info(f"使用自动检测的报告服务器URL: {report_server_url}")
     
     # 解析服务器地址和端口
     import re
@@ -679,7 +690,7 @@ def add_report(report_id, report_dir, metadata=None):
         logger.error(f"复制报告文件失败: {str(e)}")
         return None
     
-    # 构建报告URL
+    # 构建报告URL（使用动态IP）
     report_url = f"{report_server_url}/{report_id}"
     logger.info(f"报告已准备就绪，可通过以下URL访问: {report_url}")
     

@@ -36,7 +36,7 @@ cleanup:
 
 # 报告服务器配置
 report_server:
-  url: "http://192.168.0.110:7987" # Docker部署的报告服务器URL
+  url: "http://localhost:7987" # Docker部署的报告服务器URL（使用localhost会自动替换为局域网IP，钉钉通知中的链接会使用真实IP）
   enabled: true # 是否启用报告服务
 
 # 其他配置

@@ -84,7 +84,47 @@ class UserAPI:
         
         logger.error(f"登录失败，已达到最大重试次数 {max_retries}")
         return False
-    
+
+    @staticmethod
+    def mock_refresh(client, uid, country="IN", role_level=3):
+        """
+        通过mockRefresh接口获取指定uid的真实token（不修改client状态）
+        :param client: API客户端实例
+        :param uid: 用户ID
+        :param country: 国家码，默认IN
+        :param role_level: 角色等级：1 用户、3 主播、5 代理，默认3
+        :return: (是否成功, access_token, user_info)
+        """
+        try:
+            response = client.request(
+                method="POST",
+                url="/api/user/v1/user/mockRefresh",
+                json={"uid": uid, "country": country, "roleLevel": role_level}
+            )
+
+            if response.status_code != 200:
+                logger.error(f"mockRefresh失败: HTTP {response.status_code}: {response.text[:200]}")
+                return False, None, None
+
+            result = response.json()
+            if result.get("errorCode") != 0:
+                logger.error(f"mockRefresh失败: {result.get('errorMessage')}")
+                return False, None, None
+
+            data = result.get("data") or {}
+            access_token = data.get("accessToken") or data.get("token")
+            user_info = data.get("userInfo") or {"uid": uid}
+
+            if not access_token:
+                logger.error(f"mockRefresh失败: 响应中未返回accessToken, data={data}")
+                return False, None, None
+
+            return True, access_token, user_info
+
+        except Exception as e:
+            logger.error(f"mockRefresh异常: {str(e)}")
+            return False, None, None
+
     @staticmethod
     def _handle_login_response(client, login_response):
         """

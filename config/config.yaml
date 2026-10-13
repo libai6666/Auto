@@ -10,7 +10,7 @@ env_config:
     base_url: "https://api.duoo.work"
     timeout: 15
   prod:
-    base_url: "http://api.example.com"
+    base_url: "https://api.duoo.live"
     timeout: 20
 
 # 请求配置

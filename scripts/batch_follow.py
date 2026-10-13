@@ -13,6 +13,10 @@
     python scripts/batch_follow.py -t 10035 -c 10 --unfollow
     # 指定用户列表取消关注
     python scripts/batch_follow.py -t 10035 --uids 10001,10002,10003 --unfollow
+    # 正式环境：让 8387289 关注 9011365（默认通过mockRefresh获取真实token）
+    python scripts/batch_follow.py --env prod -t 9011365 --uids 8387289
+    # 正式环境：从默认区间 4000000-4000100 随机抽 50 个关注 9011365
+    python scripts/batch_follow.py --env prod -t 9011365 -c 10
 """
 
 import argparse
@@ -28,6 +32,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import urllib3
 
 from utils.api_client import APIClient
+from utils.app.api.user import UserAPI
+from utils.data_handler import load_config
 from utils.logger import logger
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -37,30 +43,68 @@ FOLLOWERS_URL = "/api/user/v1/relation/followers"
 FOLLOWERS_PAGE_SIZE = 50
 DEFAULT_BIZ_ID = "7"
 DEFAULT_D = "123456"
+DEFAULT_COUNTRY = "IN"
+DEFAULT_ROLE_LEVEL = 3  # 角色：1 用户、3 主播、5 代理
+
+# mockRefresh/正式环境请求的公共头，与 batch_apply_tribe.MockUserClient 保持一致
+MOCK_COMMON_HEADERS = {"d": "111", "p": "1", "v": "5.8.1", "l": "zh-en", "appName": "duoo"}
+
+# 各环境默认随机uid区间
+ENV_UID_RANGE = {"dev": (10001, 10600), "test": (10001, 10600), "prod": (4000000, 4000600)}
 
 _thread_local = threading.local()
+_BASE_URL = None
+_MOCK = None  # {"country":..., "roleLevel":...}，None表示使用uid作为token（测试环境）
+_token_cache = {}
+_token_lock = threading.Lock()
 
 
 def get_client():
     client = getattr(_thread_local, "client", None)
     if client is None:
-        client = APIClient()
+        client = APIClient(base_url=_BASE_URL)
+        if _MOCK:
+            client.session.headers.update(MOCK_COMMON_HEADERS)
         _thread_local.client = client
     return client
 
 
-def build_headers(uid, biz_id, device):
-    return {
-        "token": str(uid),
-        "BizId": str(biz_id),
-        "d": str(device),
-    }
+def mock_refresh_token(uid):
+    """通过mockRefresh接口获取uid的真实token（带缓存）"""
+    with _token_lock:
+        if uid in _token_cache:
+            return _token_cache[uid]
+    success, token, _ = UserAPI.mock_refresh(
+        get_client(), uid, country=_MOCK["country"], role_level=_MOCK["roleLevel"]
+    )
+    if not success or not token:
+        raise RuntimeError(f"mockRefresh失败: uid={uid}")
+    with _token_lock:
+        _token_cache[uid] = token
+    return token
+
+
+def auth_token(uid):
+    """mock模式返回真实token，否则返回None（用uid当token）"""
+    return mock_refresh_token(uid) if _MOCK else None
+
+
+def build_headers(uid, biz_id, device, token=None):
+    headers = {"BizId": str(biz_id)}
+    if token:
+        # mock模式：d必须与mockRefresh签发token时的deviceId一致，否则网关401
+        headers["Authorization"] = token
+        headers["d"] = MOCK_COMMON_HEADERS["d"]
+    else:
+        headers["token"] = str(uid)
+        headers["d"] = str(device)
+    return headers
 
 
 def fetch_followers(target_uid, limit, biz_id, device):
     """查询目标用户的粉丝uid列表，最多返回 limit 个"""
     client = get_client()
-    headers = build_headers(target_uid, biz_id, device)
+    headers = build_headers(target_uid, biz_id, device, auth_token(target_uid))
     uids = []
     offset = 0
     while len(uids) < limit:
@@ -84,8 +128,11 @@ def fetch_followers(target_uid, limit, biz_id, device):
 
 
 def follow_modify(uid, target_uid, follow, biz_id, device):
-    headers = build_headers(uid, biz_id, device)
     payload = {"targetUid": target_uid, "follow": follow}
+    try:
+        headers = build_headers(uid, biz_id, device, auth_token(uid))
+    except Exception as e:
+        return uid, False, str(e)
     try:
         response = get_client().post(FOLLOW_URL, json=payload, headers=headers)
     except Exception as e:
@@ -147,12 +194,38 @@ def main():
     parser.add_argument("-c", "--count", type=int, default=10, help="关注：随机抽取的关注者数量；取消关注：取消的粉丝数量（不足则全部）。默认10")
     parser.add_argument("--unfollow", action="store_true", help="取消关注（默认是关注），会先查询目标用户的粉丝列表")
     parser.add_argument("--uids", help="指定关注者ID，多个用逗号分隔；指定后忽略 --count/--start/--end，取消关注时也不再查粉丝列表")
-    parser.add_argument("--start", type=int, default=10001, help="随机token区间起始，默认10001")
-    parser.add_argument("--end", type=int, default=10600, help="随机token区间结束，默认10600")
-    parser.add_argument("--concurrency", type=int, default=20, help="并发数，默认20")
+    parser.add_argument("--start", type=int, default=None, help="随机uid区间起始，默认按环境：test/dev为10001，prod为4000000")
+    parser.add_argument("--end", type=int, default=None, help="随机uid区间结束，默认按环境：test/dev为10600，prod为4000100")
+    parser.add_argument("--concurrency", type=int, default=10, help="并发数，默认10")
+    parser.add_argument("--env", choices=["dev", "test", "prod"], default="test", help="执行环境，默认test")
+    parser.add_argument("--mock", dest="mock", action="store_true", default=True, help="通过mockRefresh接口获取真实token，默认开启")
+    parser.add_argument("--no-mock", dest="mock", action="store_false", help="不走mockRefresh，直接用uid当token")
+    parser.add_argument("--country", default=DEFAULT_COUNTRY, help=f"mockRefresh的country，默认{DEFAULT_COUNTRY}")
+    parser.add_argument("--role-level", type=int, default=DEFAULT_ROLE_LEVEL, help=f"mockRefresh的roleLevel：1用户、3主播、5代理，默认{DEFAULT_ROLE_LEVEL}")
     parser.add_argument("--biz-id", default=DEFAULT_BIZ_ID, help=f"BizId 请求头，默认{DEFAULT_BIZ_ID}")
-    parser.add_argument("--device", default=DEFAULT_D, help=f"d 请求头，默认{DEFAULT_D}")
+    parser.add_argument("--device", default=DEFAULT_D, help=f"d 请求头，默认{DEFAULT_D}（mock模式固定使用{MOCK_COMMON_HEADERS['d']}与mockRefresh保持一致）")
     args = parser.parse_args()
+
+    config = load_config()
+    env = args.env or config.get("current_env", "test")
+    base_url = (config.get("env_config", {}).get(env) or {}).get("base_url")
+    if not base_url:
+        parser.error(f"环境 {env} 未配置 base_url")
+    global _BASE_URL, _MOCK
+    _BASE_URL = base_url
+    logger.info(f"执行环境: {env} ({base_url})")
+    if args.mock:
+        _MOCK = {"country": args.country, "roleLevel": args.role_level}
+        logger.info(f"mockRefresh模式: country={args.country}, roleLevel={args.role_level}")
+    else:
+        logger.info("未开启mockRefresh，使用uid作为token")
+
+    default_start, default_end = ENV_UID_RANGE.get(env, ENV_UID_RANGE["test"])
+    if args.start is None:
+        args.start = default_start
+    if args.end is None:
+        args.end = default_end
+    logger.info(f"随机uid区间: {args.start}-{args.end}")
 
     if args.target <= 0:
         parser.error("--target 必须大于0")
